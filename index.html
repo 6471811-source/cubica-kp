@@ -4,208 +4,688 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Тест 3D модели реек</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>КП CUBICA</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#f8f6f2;font-family:sans-serif;padding:20px}
-h1{font-size:18px;color:#2c3e50;margin:0 0 12px}
-#box{width:100%;max-width:900px;aspect-ratio:16/9;background:#f0ece6;border-radius:12px;border:1px solid rgba(196,154,108,.2);position:relative;overflow:hidden;margin:0 auto}
-#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c49a6c;font-size:15px;text-align:center;padding:20px;font-weight:600}
-canvas{display:block;width:100%;height:100%}
-#info{max-width:900px;margin:12px auto 0;font-size:13px;color:#7a8a99;text-align:center}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.kp-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#f8f6f2}
+.kp-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 10% 10%,rgba(196,154,108,.10) 0%,transparent 60%),radial-gradient(ellipse at 90% 90%,rgba(44,62,80,.06) 0%,transparent 60%)}
+.kp-bg-rail{position:absolute;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(230,180,120,.75) 30%,rgba(230,180,120,.95) 50%,rgba(230,180,120,.75) 70%,transparent 100%);opacity:.7;border-radius:2px;box-shadow:0 0 12px rgba(196,154,108,.5);animation:kpRailFlowDiag 14s linear infinite}
+@keyframes kpRailFlowDiag{0%{transform:translate(-150%,-150%) rotate(-25deg);opacity:0}10%{opacity:.75}90%{opacity:.75}100%{transform:translate(150%,150%) rotate(-25deg);opacity:0}}
+.kp-bg-rail.s1{top:10%;width:45%;left:5%;animation-delay:0s}
+.kp-bg-rail.s2{top:25%;width:60%;left:15%;animation-delay:-2s;opacity:.55}
+.kp-bg-rail.s3{top:40%;width:40%;left:35%;animation-delay:-4s}
+.kp-bg-rail.s4{top:55%;width:55%;left:20%;animation-delay:-6s;opacity:.6}
+.kp-bg-rail.s5{top:70%;width:50%;left:40%;animation-delay:-8s}
+.kp-bg-rail.s6{top:85%;width:35%;left:10%;animation-delay:-10s;opacity:.5}
+.kp-bg-rail.s7{top:18%;width:42%;left:55%;animation-delay:-1s;opacity:.6}
+.kp-bg-rail.s8{top:65%;width:38%;left:60%;animation-delay:-7s}
+.kp-wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:60px 24px 80px}
+.kp-hero{text-align:center;padding:20px 0 40px}
+.kp-logo-svg{display:block;width:360px;max-width:90%;margin:0 auto 16px auto}
+.kp-logo-svg svg{width:100%;height:auto;display:block;margin:0 auto}
+.kp-h1{font-family:'Playfair Display',serif;font-size:48px;font-weight:600;color:#2c3e50;margin:0 0 12px;opacity:0;animation:kpSlideUp .8s .8s ease-out forwards;line-height:1.15}
+.kp-h2{font-size:14px;color:#7a8a99;font-weight:500;margin:0;letter-spacing:2.5px;text-transform:uppercase;opacity:0;animation:kpSlideUp .8s 1s ease-out forwards}
+.kp-client{margin-top:24px;font-size:15px;color:#c49a6c;opacity:0;animation:kpSlideUp .8s 1.2s ease-out forwards;font-weight:500}
+@keyframes kpSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.kp-section{margin:32px 0;padding:32px 36px;background:#fff;border:1px solid rgba(196,154,108,.15);border-radius:16px;box-shadow:0 10px 40px rgba(44,62,80,.04);opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease,box-shadow .3s ease}
+.kp-section:hover{box-shadow:0 15px 50px rgba(44,62,80,.08)}
+.kp-section.visible{opacity:1;transform:translateY(0)}
+.kp-sec-title{display:flex;align-items:center;gap:14px;font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:#2c3e50;margin:0 0 24px}
+.kp-sec-num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#2c3e50;color:#fff;font-size:15px;font-weight:600;flex-shrink:0;font-family:'Inter',sans-serif}
+.kp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+.kp-stat{background:#fdfcfb;border:1px solid rgba(196,154,108,.2);border-radius:12px;padding:20px 16px;text-align:center;transition:transform .3s,border-color .3s,box-shadow .3s}
+.kp-stat:hover{transform:translateY(-4px);border-color:rgba(196,154,108,.6);box-shadow:0 8px 20px rgba(196,154,108,.1)}
+.kp-stat-lb{font-size:11px;color:#7a8a99;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;font-weight:600}
+.kp-stat-vl{font-size:28px;font-weight:700;color:#c49a6c;font-variant-numeric:tabular-nums;line-height:1}
+.kp-stat-vl small{font-size:14px;color:#7a8a99;font-weight:500;margin-left:2px}
+.kp-table{width:100%;border-collapse:collapse;font-size:14px}
+.kp-table th{text-align:left;padding:14px 16px;font-size:11px;color:#7a8a99;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(196,154,108,.2);font-weight:600}
+.kp-table td{padding:14px 16px;border-bottom:1px solid rgba(196,154,108,.1);color:#2c3e50}
+.kp-table tr:last-child td{border-bottom:none}
+.kp-table td.qty{text-align:right;font-weight:700;color:#c49a6c;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kp-scheme-2d{background:#fdfcfb;border-radius:12px;padding:16px;overflow:hidden;border:1px solid rgba(196,154,108,.15)}
+.kp-scheme-2d svg{width:100%;height:auto;display:block;border-radius:8px}
+.kp-3d{width:100%;aspect-ratio:16/9;background:#f0ece6;border-radius:12px;overflow:hidden;position:relative;border:1px solid rgba(196,154,108,.2)}
+.kp-3d canvas{display:block;width:100%;height:100%}
+.kp-total{text-align:center;padding:40px 24px;background:linear-gradient(135deg,rgba(196,154,108,.08),rgba(196,154,108,.03));border:2px solid rgba(196,154,108,.3);border-radius:20px;margin:32px 0}
+.kp-total-lb{font-size:12px;color:#7a8a99;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;font-weight:600}
+.kp-total-vl{font-family:'Playfair Display',serif;font-size:56px;font-weight:700;color:#c49a6c;line-height:1;font-variant-numeric:tabular-nums}
+.kp-total-vl small{font-size:22px;color:#7a8a99;margin-left:6px;font-family:'Inter',sans-serif;font-weight:500}
+.kp-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:32px 0}
+.kp-btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;font-size:15px;font-weight:600;border-radius:12px;cursor:pointer;border:none;font-family:'Inter',sans-serif;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s}
+.kp-btn:hover{transform:translateY(-2px)}
+.kp-btn.secondary{background:#fff;color:#2c3e50;border:1px solid rgba(196,154,108,.4);box-shadow:0 4px 12px rgba(44,62,80,.04)}
+.kp-btn.secondary:hover{background:#fdfcfb;border-color:#c49a6c}
+.kp-btn.danger{background:linear-gradient(135deg,#c49a6c,#a87c4f);color:#fff;box-shadow:0 8px 24px rgba(196,154,108,.25)}
+.kp-btn.danger:hover{box-shadow:0 12px 32px rgba(196,154,108,.4)}
+.kp-btn.montage{background:#fff;color:#2c3e50;border:1px solid rgba(44,62,80,.2);box-shadow:0 4px 12px rgba(44,62,80,.04)}
+.kp-btn.montage:hover{background:#fdfcfb;border-color:#2c3e50}
+.kp-contacts{text-align:center;font-size:13px;color:#7a8a99;margin:16px 0 8px;line-height:1.7}
+.kp-contacts a{color:#c49a6c;text-decoration:none;font-weight:600}
+.kp-contacts a:hover{text-decoration:underline}
+.kp-montage-note{text-align:center;font-size:12.5px;color:#7a8a99;margin:8px auto 0;max-width:520px;line-height:1.6;padding:12px 16px;background:rgba(196,154,108,.06);border:1px dashed rgba(196,154,108,.35);border-radius:10px}
+.kp-montage-note b{color:#2c3e50}
+.kp-foot{text-align:center;font-size:12px;color:#9aa8b5;padding-top:40px;margin-top:40px;border-top:1px solid rgba(196,154,108,.15)}
+.kp-valid{display:inline-block;padding:8px 18px;background:rgba(196,154,108,.1);border:1px solid rgba(196,154,108,.3);border-radius:20px;color:#c49a6c;font-size:12px;font-weight:600;margin:8px 0}
+.kp-empty{text-align:center;padding:80px 20px;color:#9aa8b5}
+.kp-empty h2{color:#c49a6c;margin-bottom:12px;font-family:'Playfair Display',serif}
+.kp-debug{max-width:900px;margin:20px auto;padding:16px;background:#fff4e5;border:1px solid #e0a060;border-radius:10px;font-family:monospace;font-size:12px;color:#6a4a20;white-space:pre-wrap;word-break:break-all}
+.kp-cut-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(196,154,108,.1);font-size:12.5px}
+.kp-cut-row:last-child{border-bottom:none}
+.kp-cut-num{flex-shrink:0;width:32px;color:#7a8a99;font-weight:600;font-variant-numeric:tabular-nums}
+.kp-cut-bar{flex:1;height:22px;background:#f0ece6;border-radius:4px;overflow:hidden;display:flex;border:1px solid rgba(196,154,108,.2)}
+.kp-cut-piece{height:100%;background:linear-gradient(180deg,#a8c9a8,#7aa87a);border-right:1px solid rgba(0,0,0,.1);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.kp-cut-piece.waste{background:linear-gradient(180deg,#e0b0a0,#c98a7a)}
+.kp-cut-meta{flex-shrink:0;font-family:monospace;color:#7a8a99;font-size:12px}
+@media(max-width:640px){.kp-h1{font-size:32px}.kp-total-vl{font-size:42px}.kp-section{padding:24px 20px}.kp-wrap{padding:36px 16px 60px}.kp-stat-vl{font-size:22px}.kp-logo-svg{width:280px}}
+@media print{.kp-3d,.kp-actions,.kp-bg,.kp-debug{display:none!important}.kp-section{opacity:1!important;transform:none!important;page-break-inside:avoid}}
 </style>
 </head>
 <body>
-<h1>Тест 3D: рейки CUBICA 50/50, зазор 40 мм, комната 5400×4200 мм</h1>
-<div id="box"><div id="msg">Загрузка Three.js...</div></div>
-<div id="info">Крутите мышью. Если видите серые продольные полосы — работает.</div>
 
-<script>
-window.addEventListener('load', function () {
-    var msg = document.getElementById('msg');
-    var box = document.getElementById('box');
+<div class="kp-bg">
+    <div class="kp-bg-rail s1"></div><div class="kp-bg-rail s2"></div>
+    <div class="kp-bg-rail s3"></div><div class="kp-bg-rail s4"></div>
+    <div class="kp-bg-rail s5"></div><div class="kp-bg-rail s6"></div>
+    <div class="kp-bg-rail s7"></div><div class="kp-bg-rail s8"></div>
+</div>
 
-    if (typeof THREE === 'undefined') {
-        msg.innerHTML = '❌ Three.js НЕ загрузился.<br>CDN cdnjs.cloudflare.com недоступен.';
-        msg.style.color = '#e10004';
-        return;
+<div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ==================== ДЕМО-PAYLOAD ====================
+   Помещение 6000×4000 мм, площадь 24 м², рейка 50×30, шаг 15 мм, denver, 5400 BYN
+   Структура: {v, L_in, W_in, area, color, railSpec, price, manager, phone, valid,
+               p:{railW,railH,gap,caps,angle}, r, rows:[{label,qty}]}
+*/
+const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NjAwMCwiV19pbiI6NDAwMCwiYXJlYSI6MjQsImNvbG9yIjoiZGVudmVyIiwicmFpbFNwZWMiOiI1MCozMCIsInByaWNlIjo1NDAwLCJjdXJyZW5jeSI6IkJZTiIsIm1hbmFnZXIiOiLQmNCy0LDQvSDQn9C10YLRgNC+0LIiLCJwaG9uZSI6Iis3OTAwMDAwMDAwMCIsInZhbGlkIjoiMzEuMTIuMjAyNiIsInAiOnsicmFpbFciOjUwLCJyYWlsSCI6MzAsImdhcCI6MTUsImNhcHMiOjIsImFuZ2xlIjowfSwiciI6MCwicm93cyI6W3sibGFiZWwiOiLQoNC10LnQutCwIDUwINGFIDMwINC80LwiLCJxdHkiOjE2MH0seyJsYWJlbCI6ItCh0YLRgNC40L3Qs9C10YAgKNC90LXQstC40LTQuNC80YvQuSDRjdC70LXQvNC10L3RgikiLCJxdHkiOjV9LHsibGFiZWwiOiLQn9C+0LTQstC10YEg0L/RgNGD0LbQuNC90L3Ri9C5IiwicXR5Ijo2MH0seyJsYWJlbCI6ItCa0YDQtdC/0LXQttC4INC4INC80L7QvdGC0LDQtiIsInF0eSI6MX1dfQ==";
+
+/* ==================== ДЕКОДИРОВАНИЕ ==================== */
+function b64dec(s){
+    if(!s) return null;
+    s = String(s).replace(/-/g,'+').replace(/_/g,'/');
+    while(s.length % 4) s += '=';
+    try {
+        const bin = atob(s);
+        const bytes = new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(bytes);
+    } catch(e){
+        console.error('b64dec error:', e);
+        return null;
     }
+}
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
 
-    // ====== ДАННЫЕ (то, что приходит из калькулятора) ======
-    var L_in = 5400;      // длина комнаты, мм
-    var W_in = 4200;      // ширина комнаты, мм
-    var railW = 50;       // ширина рейки, мм
-    var railH = 50;       // высота рейки, мм
-    var gap = 40;         // зазор между рейками, мм
-    // ======================================================
+/* ==================== ГЕОМЕТРИЯ / РАСЧЁТЫ ==================== */
+function pointInPoly(poly,px,py){let inside=false,n=poly.length;for(let i=0,j=n-1;i<n;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const inter=((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi);if(inter)inside=!inside;}return inside;}
+function clipSegToPoly(poly,x1,y1,x2,y2){const n=poly.length;const dx=x2-x1,dy=y2-y1;const ts=[0,1];for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];const ex=b[0]-a[0],ey=b[1]-a[1];const denom=dx*ey-dy*ex;if(Math.abs(denom)<1e-9)continue;const t=((a[0]-x1)*ey-(a[1]-y1)*ex)/denom;if(t>1e-6&&t<1-1e-6)ts.push(t);}ts.sort((p,q)=>p-q);const uniq=[ts[0]];for(let i=1;i<ts.length;i++)if(ts[i]-uniq[uniq.length-1]>1e-6)uniq.push(ts[i]);const out=[];for(let i=0;i<uniq.length-1;i++){const t0=uniq[i],t1=uniq[i+1];if(t1-t0<1e-6)continue;const tm=(t0+t1)/2;const mx=x1+tm*dx,my=y1+tm*dy;if(pointInPoly(poly,mx,my))out.push([x1+t0*dx,y1+t0*dy,x1+t1*dx,y1+t1*dy]);}return out;}
+function clipSegToRect(x0,y0,x1,y1,rx0,ry0,rx1,ry1){let t0=0,t1=1;const dx=x1-x0,dy=y1-y0;const p=[-dx,dx,-dy,dy];const q=[x0-rx0,rx1-x0,y0-ry0,ry1-y0];for(let i=0;i<4;i++){if(Math.abs(p[i])<1e-9){if(q[i]<0)return null;}else{const t=q[i]/p[i];if(p[i]<0){if(t>t1)return null;if(t>t0)t0=t;}else{if(t<t0)return null;if(t<t1)t1=t;}}}return[x0+t0*dx,y0+t0*dy,x0+t1*dx,y0+t1*dy];}
+function mergeCollinearSegments(segs){if(!segs||segs.length<=1)return segs||[];let refIdx=0,refLen=0;for(let i=0;i<segs.length;i++){const L=Math.hypot(segs[i][2]-segs[i][0],segs[i][3]-segs[i][1]);if(L>refLen){refLen=L;refIdx=i;}}if(refLen<1e-6)return segs;const rdx=segs[refIdx][2]-segs[refIdx][0],rdy=segs[refIdx][3]-segs[refIdx][1];const ux=rdx/refLen,uy=rdy/refLen,px=-uy,py=ux;const items=segs.map(s=>{const t0=s[0]*ux+s[1]*uy,t1=s[2]*ux+s[3]*uy;const d0=s[0]*px+s[1]*py,d1=s[2]*px+s[3]*py;return{tMin:Math.min(t0,t1),tMax:Math.max(t0,t1),dPerp:(d0+d1)/2};});items.sort((a,b)=>a.tMin-b.tMin);const merged=[];let cur=items[0];for(let i=1;i<items.length;i++){const next=items[i];const cL=cur.tMax-cur.tMin,nL=next.tMax-next.tMin,tot=cL+nL;const avg=tot>0?(cur.dPerp*cL+next.dPerp*nL)/tot:cur.dPerp;if(Math.abs(next.dPerp-cur.dPerp)<2&&next.tMin<=cur.tMax+2){cur={tMin:Math.min(cur.tMin,next.tMin),tMax:Math.max(cur.tMax,next.tMax),dPerp:avg};}else{merged.push(cur);cur=next;}}merged.push(cur);return merged.map(m=>[m.tMin*ux+m.dPerp*px,m.tMin*uy+m.dPerp*py,m.tMax*ux+m.dPerp*px,m.tMax*uy+m.dPerp*py]);}
+function computeWallAlignedPositions(total,edgeDist,maxStep){if(total<=0)return[];if(total<=2*edgeDist)return[total/3,2*total/3];const span=total-2*edgeDist;const nGaps=Math.max(1,Math.ceil(span/maxStep));const step=span/nGaps;const positions=[];for(let i=0;i<=nGaps;i++)positions.push(edgeDist+i*step);return positions;}
 
-    msg.textContent = '✓ Three.js загружен. Строю рейки...';
+const CARRIER_STOCK=3000,CARRIER_STEP_MAX=1000,CARRIER_W=30,CARRIER_H=20,CARRIER_XSHIFT=50,STRINGER_WALL_EDGE=100,RAIL_END_OVERHANG_MAX=300,HANGER_WALL_EDGE=100,HANGER_STEP_MAX=1000,MAX_RAILS=200,RAIL_RULE_MIN_LEN=300,RAIL_ABSOLUTE_MIN_LEN=50;
 
-    var scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0ece6);
+function computeRailSegments(L){L=Math.ceil(L/50)*50;if(L<=0)return{pieces:[],joints:0};if(L<=4000)return{pieces:[L],joints:0};if(L%4000===0){const n=L/4000;return{pieces:new Array(n).fill(4000),joints:n-1};}if(L%3000===0){const n=L/3000;return{pieces:new Array(n).fill(3000),joints:n-1};}let best=null;for(let a=Math.floor(L/4000);a>=0;a--){const rem=L-a*4000;if(rem<=0)continue;if(rem%3000===0){const b=rem/3000;const t=a+b;if(best===null||t<best.total)best={a,b,total:t};}}if(best!==null){if(best.total===2&&best.a!==best.b){const half=Math.ceil(L/2/50)*50;return{pieces:[half,half],joints:1};}const pieces=[];for(let i=0;i<best.a;i++)pieces.push(4000);for(let i=0;i<best.b;i++)pieces.push(3000);return{pieces,joints:pieces.length-1};}const n4=Math.floor(L/4000),r4=L-n4*4000,n3=Math.floor(L/3000),r3=L-n3*3000;const ratio4=r4/4000,ratio3=r3/3000;let pieces;if(ratio4>=ratio3){pieces=new Array(n4).fill(4000);if(r4>0)pieces.push(r4);}else{pieces=new Array(n3).fill(3000);if(r3>0)pieces.push(r3);}if(pieces.length===2&&pieces[0]!==pieces[1]){const half=Math.ceil(L/2/50)*50;return{pieces:[half,half],joints:1};}return{pieces,joints:pieces.length-1};}
 
-    var camera = new THREE.PerspectiveCamera(45, box.clientWidth / box.clientHeight, 0.05, 200);
-    camera.position.set(6, 5, 7);
-    camera.lookAt(0, 0, 0);
+function computeStringerSegments(W,pitch){W=Math.ceil(W/50)*50;if(W<=0)return{pieces:[],starts:[],overlap:0};if(W<=CARRIER_STOCK)return{pieces:[W],starts:[0],overlap:0};let overlap=Math.ceil((2*pitch)/10)*10;if(overlap<50)overlap=50;const maxOv=CARRIER_STOCK*0.8;if(overlap>maxOv)overlap=maxOv;const step=CARRIER_STOCK-overlap;if(step<200)return{pieces:[W],starts:[0],overlap:0};const pieces=[],starts=[];let start=0;while(true){const remain=W-start;if(remain<=CARRIER_STOCK+0.5){let lastLen=Math.max(50,Math.ceil(remain/50)*50);pieces.push(lastLen);starts.push(start);break;}pieces.push(CARRIER_STOCK);starts.push(start);start+=step;}if(pieces.length>=2){const lastLen=pieces[pieces.length-1];if(lastLen<pitch){const deficit=pitch-lastLen;pieces[pieces.length-2]-=deficit;pieces[pieces.length-1]=pitch;}}return{pieces,starts,overlap};}
 
-    var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(box.clientWidth, box.clientHeight, false);
-    box.appendChild(renderer.domElement);
-    msg.style.display = 'none';
+/* ==================== РАСКЛАДКА ==================== */
+function recalcLayout(kp){
+    const {railW,railH,gap} = kp.p;
+    const L = kp.L_in, W = kp.W_in;
+    const polygon = (kp.polygon && Array.isArray(kp.polygon)) ? kp.polygon.map(p=>[Number(p[0]),Number(p[1])]) : null;
+    const rotationDeg = kp.r || 0;
+    const rotRad = rotationDeg*Math.PI/180;
+    const cosR = Math.cos(rotRad), sinR = Math.sin(rotRad);
+    const absC = Math.abs(cosR), absS = Math.abs(sinR);
+    const pitch = railW + gap;
+    const roomCx = L/2, roomCy = W/2;
+    function gridToWorld(gx,gy){return[roomCx+gx*cosR-gy*sinR, roomCy+gx*sinR+gy*cosR];}
+    function worldToGrid(wx,wy){const dx=wx-roomCx,dy=wy-roomCy;return[dx*cosR+dy*sinR, -dx*sinR+dy*cosR];}
+    function clipAny(x0,y0,x1,y1){if(polygon) return clipSegToPoly(polygon,x0,y0,x1,y1); const c = clipSegToRect(x0,y0,x1,y1,0,0,L,W); return c?[c]:[];}
 
-    // Свет
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    var d1 = new THREE.DirectionalLight(0xffd7a3, 0.9); d1.position.set(6, 10, 6); scene.add(d1);
-    var d2 = new THREE.DirectionalLight(0xffffff, 0.4); d2.position.set(-6, 6, -5); scene.add(d2);
+    const gridXExtent = L*absC + W*absS;
+    const gridYExtent = L*absS + W*absC;
+    const gxHalf = gridXExtent/2 + pitch*2;
+    const gyHalf = gridYExtent/2 + pitch*2;
 
-    // Вращение
-    var controls = null;
-    if (typeof THREE.OrbitControls !== 'undefined') {
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.08;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 1.2;
-        controls.target.set(0, 0.025, 0);
-    }
+    const perRailSegments = [];
+    let nRailsLines = Math.max(1, Math.floor((gridYExtent+gap)/pitch));
+    if(nRailsLines > MAX_RAILS) nRailsLines = MAX_RAILS;
+    const totalRailsSpan = nRailsLines*railW + (nRailsLines-1)*gap;
+    const railEdgeOffset = (gridYExtent - totalRailsSpan)/2;
 
-    // ====== Строим рейки ======
-    var pivot = new THREE.Group();
-    scene.add(pivot);
-
-    var Lm = L_in / 1000;   // 5.4 м
-    var Wm = W_in / 1000;   // 4.2 м
-    var railWm = railW / 1000;
-    var railHm = railH / 1000;
-    var gapM = gap / 1000;
-    var pitch = railWm + gapM;
-
-    var xOff = -Lm / 2;
-    var zOff = -Wm / 2;
-
-    // Сколько реек поместится
-    var nRails = Math.max(1, Math.floor((Wm + gapM) / pitch));
-    var totalSpan = nRails * railWm + (nRails - 1) * gapM;
-    var startZ = -totalSpan / 2 + railWm / 2;
-
-    // Материал рейки — процедурное дерево Denver
-    var woodCanvas = document.createElement('canvas');
-    woodCanvas.width = 256; woodCanvas.height = 256;
-    var ctx = woodCanvas.getContext('2d');
-    var grad = ctx.createLinearGradient(0, 0, 256, 256);
-    grad.addColorStop(0, '#c9a166');
-    grad.addColorStop(1, '#8a6b3a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 256, 256);
-    for (var i = 0; i < 170; i++) {
-        var x = Math.random() * 256;
-        ctx.strokeStyle = 'rgba(0,0,0,' + (0.04 + Math.random() * 0.09) + ')';
-        ctx.lineWidth = 0.4 + Math.random() * 1.3;
-        ctx.beginPath();
-        var y = 0, xx = x;
-        ctx.moveTo(xx, y);
-        while (y < 256) {
-            y += 6 + Math.random() * 10;
-            xx += (Math.random() - 0.5) * 3;
-            ctx.lineTo(xx, y);
+    for(let i=0;i<nRailsLines;i++){
+        const gy = -gridYExtent/2 + railEdgeOffset + railW/2 + i*pitch;
+        const [wx0,wy0] = gridToWorld(-gxHalf,gy);
+        const [wx1,wy1] = gridToWorld(+gxHalf,gy);
+        const mergedSegs = mergeCollinearSegments(clipAny(wx0,wy0,wx1,wy1));
+        for(const c of mergedSegs){
+            const dxs = c[2]-c[0], dys = c[3]-c[1];
+            const len = Math.hypot(dxs,dys);
+            if(len < 50) continue;
+            const ux = dxs/len, uy = dys/len;
+            const pat = computeRailSegments(len);
+            perRailSegments.push({x0:c[0],y0:c[1],x1:c[2],y1:c[3],len,ux,uy,pieces:pat.pieces});
         }
+    }
+
+    const gxMinAll = -gridXExtent/2 + STRINGER_WALL_EDGE;
+    const gxMaxAll = +gridXExtent/2 - STRINGER_WALL_EDGE;
+    let stringerXsGrid = computeWallAlignedPositions(gridXExtent, STRINGER_WALL_EDGE, CARRIER_STEP_MAX).map(p=>p-gridXExtent/2);
+
+    const railGridRanges = perRailSegments.map(r=>{
+        const gx0 = worldToGrid(r.x0,r.y0)[0];
+        const gx1 = worldToGrid(r.x1,r.y1)[0];
+        return {len:r.len, min:Math.min(gx0,gx1), max:Math.max(gx0,gx1)};
+    });
+    const MIN_STEP_BETWEEN = 200;
+    function addStringerToSet(xSet,x){if(x<gxMinAll||x>gxMaxAll)return false;for(const ex of xSet)if(Math.abs(ex-x)<MIN_STEP_BETWEEN)return false;xSet.add(x);return true;}
+    function passEnsureMinStringers(){let changed=false;const xSet=new Set(stringerXsGrid);for(const r of railGridRanges){if(r.len<RAIL_ABSOLUTE_MIN_LEN)continue;const needMin=(r.len>=RAIL_RULE_MIN_LEN)?2:1;const inside=[...xSet].filter(x=>x>=r.min-30&&x<=r.max+30).sort((a,b)=>a-b);if(inside.length>=needMin)continue;const center=(r.min+r.max)/2;if(inside.length===0){if(addStringerToSet(xSet,center))changed=true;}else if(inside.length===1&&needMin===2){const ex=inside[0];const cand=2*center-ex;if(cand>=r.min+50&&cand<=r.max-50){if(addStringerToSet(xSet,cand))changed=true;}}}stringerXsGrid=[...xSet].sort((a,b)=>a-b);return changed;}
+    function passEnsureEndSupport(){let changed=false;const xSet=new Set(stringerXsGrid);for(const r of railGridRanges){if(r.len<200)continue;const inside=[...xSet].filter(x=>x>=r.min-30&&x<=r.max+30).sort((a,b)=>a-b);if(inside.length===0)continue;const first=inside[0],last=inside[inside.length-1];if(first-r.min>RAIL_END_OVERHANG_MAX){if(addStringerToSet(xSet,r.min+Math.max(100,RAIL_END_OVERHANG_MAX-50)))changed=true;}if(r.max-last>RAIL_END_OVERHANG_MAX){if(addStringerToSet(xSet,r.max-Math.max(100,RAIL_END_OVERHANG_MAX-50)))changed=true;}}stringerXsGrid=[...xSet].sort((a,b)=>a-b);return changed;}
+    for(let iter=0;iter<8;iter++){let changed=false;if(passEnsureMinStringers())changed=true;if(passEnsureEndSupport())changed=true;if(!changed)break;}
+
+    const perStringerSegments = [];
+    for(let j=0;j<stringerXsGrid.length;j++){
+        const gx = stringerXsGrid[j];
+        const [wx0,wy0] = gridToWorld(gx, -gyHalf);
+        const [wx1,wy1] = gridToWorld(gx, +gyHalf);
+        const mergedSegs = mergeCollinearSegments(clipAny(wx0,wy0,wx1,wy1));
+        const strSegList = []; const hangers = [];
+        for(const c of mergedSegs){
+            const dxs = c[2]-c[0], dys = c[3]-c[1];
+            const len = Math.hypot(dxs,dys);
+            if(len<50) continue;
+            const ux = dxs/len, uy = dys/len;
+            const stRes = computeStringerSegments(len, pitch);
+            for(let k=0;k<stRes.pieces.length;k++){
+                const t0 = stRes.starts[k]/len, t1 = (stRes.starts[k]+stRes.pieces[k])/len;
+                const sh = ((j+k)%2)*CARRIER_XSHIFT;
+                const ax = c[0]+dxs*t0+cosR*sh, ay = c[1]+dys*t0+sinR*sh;
+                const bx = c[0]+dxs*t1+cosR*sh, by = c[1]+dys*t1+sinR*sh;
+                const mergedSub = mergeCollinearSegments(clipAny(ax,ay,bx,by));
+                for(const sc of mergedSub){
+                    const slen = Math.hypot(sc[2]-sc[0], sc[3]-sc[1]);
+                    if(slen<50) continue;
+                    const sux = (sc[2]-sc[0])/slen, suy = (sc[3]-sc[1])/slen;
+                    strSegList.push({x0:sc[0],y0:sc[1],x1:sc[2],y1:sc[3],len:slen,ux:sux,uy:suy,xShift:sh});
+                    const gya = worldToGrid(sc[0],sc[1])[1];
+                    const gyb = worldToGrid(sc[2],sc[3])[1];
+                    const gyMin = Math.min(gya,gyb), gyMax = Math.max(gya,gyb);
+                    const gyRange = gyMax-gyMin;
+                    if(gyRange>50){
+                        const gyList = computeWallAlignedPositions(gyRange, HANGER_WALL_EDGE, HANGER_STEP_MAX);
+                        for(const gy of gyList){
+                            const gxHanger = gx+sh;
+                            const wpt = gridToWorld(gxHanger, gyMin+gy);
+                            let inside = true;
+                            if(polygon) inside = pointInPoly(polygon, wpt[0], wpt[1]);
+                            else inside = wpt[0]>=0 && wpt[0]<=L && wpt[1]>=0 && wpt[1]<=W;
+                            if(!inside) continue;
+                            hangers.push({x:wpt[0],y:wpt[1]});
+                        }
+                    }
+                }
+            }
+        }
+        perStringerSegments.push({x:gx, origX:gx, segs:strSegList, hangers});
+    }
+    return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, caps:kp.p.caps};
+}
+
+/* ==================== 2D СХЕМА ==================== */
+function kpBuild2DScheme(layout){
+    const {L_in, W_in, polygon} = layout;
+    const width = 800, height = 500, padding = 40;
+    const s = Math.min((width-2*padding)/L_in, (height-2*padding)/W_in);
+    const dw = L_in*s, dh = W_in*s;
+    const ox = (width-dw)/2, oy = (height-dh)/2;
+    let svg = '<svg viewBox="0 0 '+width+' '+height+'" xmlns="http://www.w3.org/2000/svg" style="background:#fdfcfb;border-radius:8px">';
+    svg += '<defs><clipPath id="kp-clip">';
+    if(polygon) svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'"/>';
+    else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';
+    svg += '</clipPath></defs><g clip-path="url(#kp-clip)">';
+
+    for(const rseg of layout.perRailSegments){
+        const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
+        const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
+        svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#c49a6c" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
+    }
+    for(const sseg of layout.perStringerSegments){
+        for(const sg of sseg.segs){
+            const sx0 = ox+sg.x0*s, sy0 = oy+sg.y0*s;
+            const sx1 = ox+sg.x1*s, sy1 = oy+sg.y1*s;
+            svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#8fa0b8" stroke-width="2" stroke-linecap="round"/>';
+        }
+    }
+    svg += '</g>';
+    if(polygon) svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+    else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+    svg += '</svg>';
+    return svg;
+}
+
+/* ==================== ТЕКСТУРЫ ==================== */
+const WOOD_PROC = {
+    denver:{base:'#c9a166',dark:'#8a6b3a',opts:{grainDensity:170,warpAmp:3}},
+    wellington:{base:'#9a8470',dark:'#5c4a38',opts:{grainDensity:170,warpAmp:3}},
+    tokyo:{base:'#6a4530',dark:'#3a2418',opts:{grainDensity:170,warpAmp:3}},
+    toronto:{base:'#5c4636',dark:'#241812',opts:{grainDensity:240,warpAmp:1.5,grainContrast:1.3,lightnessBands:40}},
+    vancouver:{base:'#6a4a34',dark:'#2a1810',opts:{grainDensity:210,warpAmp:4.5,grainContrast:1.5,lightnessBands:55}},
+    rio:{base:'#d4a05a',dark:'#8a5a20',opts:{grainDensity:140,warpAmp:2,grainContrast:0.8,lightnessBands:70}},
+    stockholm:{base:'#9a7a56',dark:'#4a3020',opts:{grainDensity:180,warpAmp:2.5,grainContrast:1.1,lightnessBands:65}},
+    sydney:{base:'#dbb070',dark:'#9a6830',opts:{grainDensity:120,warpAmp:3.5,grainContrast:1.4,lightnessBands:80}}
+};
+const TEX_CACHE = {};
+function makeWoodTexture(name){
+    if(TEX_CACHE[name]) return TEX_CACHE[name];
+    const p = WOOD_PROC[name] || WOOD_PROC.denver;
+    const {base,dark,opts} = p;
+    const W=256,H=256;
+    const c = document.createElement('canvas'); c.width=W; c.height=H;
+    const ctx = c.getContext('2d');
+    const gd = opts.grainDensity||170, gc = opts.grainContrast||1, wa = opts.warpAmp||3, lb = opts.lightnessBands||70;
+    const g = ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,base); g.addColorStop(1,dark);
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    for(let i=0;i<gd;i++){
+        const x = Math.random()*W;
+        ctx.strokeStyle = 'rgba(0,0,0,'+((0.04+Math.random()*0.09)*gc)+')';
+        ctx.lineWidth = 0.4+Math.random()*1.3;
+        ctx.beginPath(); let y=0, xx=x; ctx.moveTo(xx,y);
+        while(y<H){ y+=6+Math.random()*10; xx+=(Math.random()-0.5)*wa; ctx.lineTo(xx,y); }
         ctx.stroke();
     }
-    var tex = new THREE.CanvasTexture(woodCanvas);
-    tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
-    var mRail = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+    for(let j=0;j<lb;j++){
+        const x2 = Math.random()*W;
+        ctx.strokeStyle = 'rgba(255,255,255,'+((0.02+Math.random()*0.05)*gc)+')';
+        ctx.lineWidth = 0.3+Math.random()*1.1;
+        ctx.beginPath(); let y2=0, xx2=x2; ctx.moveTo(xx2,y2);
+        while(y2<H){ y2+=8+Math.random()*12; xx2+=(Math.random()-0.5)*(wa*0.66); ctx.lineTo(xx2,y2); }
+        ctx.stroke();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+    t.anisotropy = 4;
+    TEX_CACHE[name] = t;
+    return t;
+}
 
-    // Одна рейка = П-образный профиль из 5 коробок (низ + 2 стенки + 2 полки)
-    function makeRail(lenM) {
-        var g = new THREE.Group();
-        var wallT = 1.5 / 1000;
-        var flange = Math.min(5 / 1000, railWm / 2 - wallT * 1.2);
-        var halfW = railWm / 2;
-
-        var bottom = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, railWm - 2 * wallT), mRail);
-        bottom.position.set(0, wallT / 2, 0);
-        g.add(bottom);
-
-        var left = new THREE.Mesh(new THREE.BoxGeometry(lenM, railHm, wallT), mRail);
-        left.position.set(0, railHm / 2, -halfW + wallT / 2);
-        g.add(left);
-
-        var right = new THREE.Mesh(new THREE.BoxGeometry(lenM, railHm, wallT), mRail);
-        right.position.set(0, railHm / 2, halfW - wallT / 2);
-        g.add(right);
-
-        var lf = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, flange), mRail);
-        lf.position.set(0, railHm - wallT / 2, -halfW + flange / 2);
-        g.add(lf);
-
-        var rf = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, flange), mRail);
-        rf.position.set(0, railHm - wallT / 2, halfW - flange / 2);
-        g.add(rf);
-
+/* ==================== 3D ==================== */
+let dispose3D = null;
+function kpInit3D(kp, layout, container){
+    if(dispose3D){ try{dispose3D();}catch(e){} dispose3D=null; }
+    if(!container || !container.clientWidth || !container.clientHeight){
+        console.warn('[CUBICA] 3D: контейнер без размеров, отложен');
+        setTimeout(()=>kpInit3D(kp, layout, container), 150);
+        return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.style.display='block'; canvas.style.width='100%'; canvas.style.height='100%';
+    container.innerHTML=''; container.appendChild(canvas);
+    const W = container.clientWidth || 640, H = container.clientHeight || 360;
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, H, false);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, W/H, 0.1, 200);
+    const Lm = layout.L_in/1000, Wm = layout.W_in/1000;
+    const railHm = layout.railH/1000;
+    const s = Math.max(Lm, Wm, 1);
+    camera.position.set(Lm*0.9, s*0.7, Wm*1.2);
+    camera.lookAt(0, railHm/2, 0);
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true; controls.dampingFactor = 0.06;
+    controls.autoRotate = true; controls.autoRotateSpeed = 1.2;
+    controls.enableZoom = true; controls.enablePan = false;
+    controls.target.set(0, railHm/2, 0);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const dl1 = new THREE.DirectionalLight(0xffd7a3, 1.0); dl1.position.set(5,10,5); scene.add(dl1);
+    const dl2 = new THREE.DirectionalLight(0xffd7a3, 0.6); dl2.position.set(-6,4,-4); scene.add(dl2);
+    const dl3 = new THREE.DirectionalLight(0xffffff, 0.5); dl3.position.set(0,-4,6); scene.add(dl3);
+    const pivot = new THREE.Group(); scene.add(pivot);
+    const xOff = -Lm/2, zOff = -Wm/2;
+    const woodName = kp.color;
+    const mRailMat = new THREE.MeshLambertMaterial({map:makeWoodTexture(woodName), side:THREE.DoubleSide});
+    const mCarrier = new THREE.MeshLambertMaterial({color:0xd0c8be});
+    const railWm = layout.railW/1000;
+    function makeRailBoxes(railW, railH, wallT, flange, length, material){
+        const g = new THREE.Group();
+        const halfW = railW/2;
+        let f = flange; const maxF = halfW - wallT*1.2; if(f>maxF) f = maxF;
+        const add = (w,h,d,px,py,pz)=>{ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), material); m.position.set(px,py,pz); g.add(m); };
+        add(length, wallT, railW-2*wallT, 0, wallT/2, 0);
+        add(length, railH, wallT, 0, railH/2, -halfW+wallT/2);
+        add(length, railH, wallT, 0, railH/2, halfW-wallT/2);
+        add(length, wallT, f, 0, railH-wallT/2, -halfW+f/2);
+        add(length, wallT, f, 0, railH-wallT/2, halfW-f/2);
         return g;
     }
-
-    // Ставим N реек параллельно оси X
-    for (var i = 0; i < nRails; i++) {
-        var z = startZ + i * pitch;
-        var rail = makeRail(Lm);
-        rail.position.set(xOff + Lm / 2, 0, z);
-        pivot.add(rail);
+    for(const rseg of layout.perRailSegments){
+        const lenM = rseg.len/1000;
+        if(lenM < 0.02) continue;
+        const ux = (rseg.x1-rseg.x0)/rseg.len, uz = (rseg.y1-rseg.y0)/rseg.len;
+        const railAngle = -Math.atan2(uz, ux);
+        let cumM = 0;
+        for(let i=0;i<rseg.pieces.length;i++){
+            let piece = rseg.pieces[i];
+            const remaining = rseg.len - cumM*1000;
+            if(piece > remaining) piece = remaining;
+            const pieceM = piece/1000;
+            const cxm = rseg.x0/1000 + ux*(cumM+pieceM/2) + xOff;
+            const czm = rseg.y0/1000 + uz*(cumM+pieceM/2) + zOff;
+            const grp = makeRailBoxes(railWm, railHm, 1.5/1000, 5/1000, pieceM, mRailMat);
+            grp.position.set(cxm, 0, czm);
+            grp.rotation.y = railAngle;
+            pivot.add(grp);
+            cumM += pieceM;
+        }
     }
-
-    // Стрингеры (профиль, который идёт перпендикулярно рейкам, поверх них)
-    var carrierWm = 30 / 1000;
-    var carrierHm = 20 / 1000;
-    var mCarrier = new THREE.MeshLambertMaterial({ color: 0xa8b0b8 });
-
-    var nCarriers = Math.max(2, Math.ceil(Lm / 1.0));
-    for (var c = 0; c < nCarriers; c++) {
-        var cx = xOff + (c + 0.5) * (Lm / nCarriers);
-        var carrier = new THREE.Mesh(
-            new THREE.BoxGeometry(carrierWm, carrierHm, Wm),
-            mCarrier
-        );
-        carrier.position.set(cx, railHm + carrierHm / 2, 0);
-        pivot.add(carrier);
+    const carrierWm = CARRIER_W/1000, carrierHm = CARRIER_H/1000;
+    for(const sseg of layout.perStringerSegments){
+        for(const sg of sseg.segs){
+            const lenM = sg.len/1000;
+            if(lenM < 0.02) continue;
+            const cxM = (sg.x0+sg.x1)/2/1000 + xOff;
+            const czM = (sg.y0+sg.y1)/2/1000 + zOff;
+            const ux = (sg.x1-sg.x0)/sg.len, uz = (sg.y1-sg.y0)/sg.len;
+            const strAngle = Math.atan2(ux, uz);
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(carrierWm, carrierHm, lenM), mCarrier);
+            mesh.position.set(cxM, railHm+carrierHm/2, czM);
+            mesh.rotation.y = strAngle;
+            pivot.add(mesh);
+        }
     }
-
-    // Пол-подложка (полупрозрачный)
-    var floorGeo = new THREE.PlaneGeometry(Lm + 0.6, Wm + 0.6);
-    var floorMat = new THREE.MeshLambertMaterial({
-        color: 0xffffff, side: THREE.DoubleSide,
-        transparent: true, opacity: 0.15, depthWrite: false
-    });
-    var floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.01;
-    pivot.add(floor);
-
-    // Камера в правильные координаты
-    var s = Math.max(Lm, Wm, 1);
-    camera.position.set(Lm * 0.9, s * 0.8, Wm * 1.1);
-    if (controls) {
-        controls.target.set(0, railHm / 2, 0);
+    let rafId, t = 0;
+    function loop(){
+        rafId = requestAnimationFrame(loop);
+        t += 0.016;
+        pivot.position.y = Math.sin(t*0.8)*0.02;
         controls.update();
-    } else {
-        camera.lookAt(0, railHm / 2, 0);
-    }
-
-    // Анимация
-    function loop() {
-        requestAnimationFrame(loop);
-        if (controls) controls.update();
         renderer.render(scene, camera);
     }
     loop();
+    dispose3D = function(){
+        cancelAnimationFrame(rafId);
+        controls.dispose();
+        renderer.dispose();
+        scene.traverse(o=>{
+            if(o.geometry) o.geometry.dispose();
+            if(o.material){
+                if(o.material.map) o.material.map.dispose();
+                o.material.dispose();
+            }
+        });
+    };
+    console.log('[CUBICA] 3D инициализирован:', layout.perRailSegments.length, 'реек,', layout.perStringerSegments.length, 'стрингеров');
+}
 
-    window.addEventListener('resize', function () {
-        var W = box.clientWidth, H = box.clientHeight;
-        camera.aspect = W / H;
-        camera.updateProjectionMatrix();
-        renderer.setSize(W, H, false);
-    });
-});
+/* ==================== РЕНДЕР ==================== */
+function kpRenderCuttingScheme(cuttingScheme, targetLen){
+    let html = '';
+    for(let i=0;i<cuttingScheme.length;i++){
+        const s = cuttingScheme[i];
+        html += '<div class="kp-cut-row"><div class="kp-cut-num">#'+(i+1)+'</div><div class="kp-cut-bar">';
+        for(const item of s.items){ const w = (item/targetLen)*100; html += '<span class="kp-cut-piece" style="width:'+w+'%;flex:0 0 '+w+'%" title="'+item+' мм">'+item+'</span>'; }
+        if(s.waste>0){ const w = (s.waste/targetLen)*100; html += '<span class="kp-cut-piece waste" style="width:'+w+'%;flex:0 0 '+w+'%" title="отход '+s.waste+' мм"></span>'; }
+        html += '</div><div class="kp-cut-meta">'+s.items.join(' + ')+(s.waste>0?' · отход '+s.waste+' мм':'')+'</div></div>';
+    }
+    return html;
+}
+function getValidUntil(){ const d = new Date(); d.setDate(d.getDate()+10); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
+
+/* ==================== НОРМАЛИЗАЦИЯ ==================== */
+function normalizeKp(raw){
+    if(!raw || typeof raw !== 'object') throw new Error('payload не объект');
+    const kp = {...raw};
+
+    // Алиасы для длины (главный баг!)
+    if(kp.L_in == null && kp.L0_in != null) kp.L_in = kp.L0_in;
+    if(kp.L_in == null && kp.L       != null) kp.L_in = kp.L;
+    if(kp.L_in == null && kp.length  != null) kp.L_in = kp.length;
+    if(kp.W_in == null && kp.W0_in   != null) kp.W_in = kp.W0_in;
+    if(kp.W_in == null && kp.W       != null) kp.W_in = kp.W;
+    if(kp.W_in == null && kp.width   != null) kp.W_in = kp.width;
+
+    kp.L_in = num(kp.L_in, 0);
+    kp.W_in = num(kp.W_in, 0);
+    kp.r    = num(kp.r, 0);
+
+    // p — обязательно объект с размерами рейки
+    kp.p = kp.p || {};
+    kp.p.railW = num(kp.p.railW, 50);
+    kp.p.railH = num(kp.p.railH, 30);
+    kp.p.gap   = num(kp.p.gap,   15);
+    kp.p.caps  = num(kp.p.caps,  2);
+    kp.p.angle = num(kp.p.angle, 0);
+
+    // Площадь и цена
+    if(!isFinite(Number(kp.area)) || Number(kp.area)<=0){
+        kp.area = (kp.L_in * kp.W_in) / 1e6;
+    } else {
+        kp.area = Number(kp.area);
+    }
+    kp.price = num(kp.price, 0);
+
+    // Текст
+    kp.color     = kp.color     || 'denver';
+    kp.railSpec  = kp.railSpec  || (kp.p.railW + '×' + kp.p.railH);
+    kp.manager   = kp.manager   || 'Менеджер';
+    kp.phone     = kp.phone     || '';
+    kp.valid     = kp.valid     || null;
+
+    // Строки
+    kp.rows = Array.isArray(kp.rows) ? kp.rows
+              .filter(r => r && (r.label != null))
+              .map(r => ({label: String(r.label), qty: num(r.qty, 0)}))
+              : [];
+
+    // Полигон (опционально)
+    if(kp.polygon && Array.isArray(kp.polygon)){
+        kp.polygon = kp.polygon
+            .filter(p => Array.isArray(p) && p.length >= 2)
+            .map(p => [Number(p[0]), Number(p[1])])
+            .filter(p => isFinite(p[0]) && isFinite(p[1]));
+        if(kp.polygon.length < 3) kp.polygon = null;
+    } else {
+        kp.polygon = null;
+    }
+
+    return kp;
+}
+
+/* ==================== ГЛАВНЫЙ РЕНДЕР ==================== */
+function renderKp(kp){
+    // Проверка размеров
+    if(kp.L_in <= 0 || kp.W_in <= 0){
+        document.getElementById('kp-content').innerHTML =
+            '<div class="kp-empty"><h2>Некорректные размеры помещения</h2>' +
+            '<p>L_in = '+kp.L_in+' мм, W_in = '+kp.W_in+' мм</p>' +
+            '<p style="margin-top:8px;font-size:12px">Проверьте поля L_in и W_in в payload.</p></div>';
+        console.error('[CUBICA] bad dims:', kp.L_in, kp.W_in);
+        return;
+    }
+
+    const layout = recalcLayout(kp);
+
+    // Диагностика
+    if(layout.perRailSegments.length === 0){
+        console.warn('[CUBICA] Нет реек в раскладке! L='+layout.L_in+' W='+layout.W_in+' pitch='+layout.pitch);
+    }
+
+    const rowsHtml = kp.rows.length
+        ? kp.rows.map(r=>'<tr><td>'+escapeHtml(r.label)+'</td><td class="qty">'+r.qty+' шт.</td></tr>').join('')
+        : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
+
+    const validUntil = kp.valid || getValidUntil();
+
+    const headerLogo =
+        '<div class="kp-logo-svg"><svg viewBox="0 0 316.2 113.23" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">'+
+        '<g transform="scale(4.541935483871)">'+
+        '<polygon fill="#e10004" points="5.1,16.3 15,6.4 13.7,5.2 2.7,16.3"/>'+
+        '<polygon fill="#e10004" points="13.1,16.3 15.5,16.3 14.3,15"/>'+
+        '<polygon fill="#e10004" points="12.6,13.3 9.6,16.3 12.1,16.3 13.8,14.5"/>'+
+        '<polygon fill="#e10004" points="6.1,16.3 8.6,16.3 12.1,12.8 10.8,11.6"/>'+
+        '<polygon fill="#e10004" points="0,16.3 1.7,16.3 13.2,4.7 12,3.5 0,15.5"/>'+
+        '<polygon fill="#e10004" points="0,7.5 6.3,1.2 5.1,0 0,5.1"/>'+
+        '<polygon fill="#e10004" points="0,4.1 2.8,1.2 1.6,0 0,1.6"/>'+
+        '<polygon fill="#e10004" points="0,11 9.8,1.2 8.5,0 0,8.5"/>'+
+        '<polygon fill="#e10004" points="0,14.5 11.5,3 10.3,1.7 0,12"/>'+
+        '</g>'+
+        '<g transform="scale(0.04150390625) translate(2004.63, 1132.83)">'+
+        '<text x="0" y="0" font-family="Playfair Display,serif" font-size="700" fill="#000" text-anchor="end" transform="rotate(180) scale(-1,1)">CUBICA</text>'+
+        '</g>'+
+        '</svg></div>';
+
+    const html =
+        '<div class="kp-hero">'+headerLogo+
+        '<h1 class="kp-h1">Коммерческое предложение</h1>'+
+        '<p class="kp-h2">Потолок CUBICA · '+escapeHtml(kp.railSpec)+' · '+escapeHtml(kp.color)+'</p>'+
+        '<p class="kp-client">Менеджер: <b style="color:#2c3e50">'+escapeHtml(kp.manager)+'</b></p></div>'+
+
+        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">1</span>Параметры помещения</h2><div class="kp-grid">'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Ширина</div><div class="kp-stat-vl"><span data-count="'+kp.W_in+'">0</span><small> мм</small></div></div>'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>'+
+        '<div class="kp-stat"><div class="kp-stat-lb">Шаг</div><div class="kp-stat-vl"><span data-count="'+layout.pitch+'">0</span><small> мм</small></div></div>'+
+        '</div></div>'+
+
+        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">2</span>3D-объём потолка</h2><div class="kp-3d" id="kp-3d-container"></div><div style="text-align:center;font-size:12px;color:#7a8a99;margin-top:10px">Потяните мышью, чтобы повернуть</div></div>'+
+
+        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">3</span>2D-схема укладки</h2><div class="kp-scheme-2d">'+kpBuild2DScheme(layout)+'</div></div>'+
+
+        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">4</span>Спецификация</h2><table class="kp-table"><thead><tr><th>Позиция</th><th style="text-align:right">Кол-во</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
+
+        '<div class="kp-section kp-observable"><div class="kp-total"><div class="kp-total-lb">Итоговая стоимость с НДС</div><div class="kp-total-vl"><span data-count="'+kp.price+'" data-decimals="2">0</span><small>BYN</small></div><div style="margin-top:12px;font-size:13px;color:#7a8a99">Цена включает материалы, доставку, раскладку</div></div><div style="text-align:center"><span class="kp-valid">Предложение действительно до '+validUntil+'</span></div></div>'+
+
+        '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" onclick="window.print()">📄 Распечатать счёт PDF</button></div>'+
+        '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
+        '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
+        '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж рейки — <b>Сергей</b>.</div>'+
+        '<div class="kp-foot">© CUBICA.BY · Кубическая рейка · '+escapeHtml(kp.manager)+' · '+escapeHtml(kp.phone)+'</div>';
+
+    document.getElementById('kp-content').innerHTML = html;
+
+    // Анимации и 3D
+    setTimeout(()=>{
+        const obs = new IntersectionObserver((entries)=>{
+            entries.forEach(en=>{ if(en.isIntersecting) en.target.classList.add('visible'); });
+        }, {threshold:0.1});
+        document.querySelectorAll('.kp-observable').forEach(el=>obs.observe(el));
+
+        document.querySelectorAll('[data-count]').forEach((el, idx)=>{
+            const target = parseFloat(el.getAttribute('data-count'));
+            if(!isFinite(target)) return;
+            const dec = parseInt(el.getAttribute('data-decimals')||'0', 10);
+            const dur = 1600;
+            setTimeout(()=>{
+                const start = performance.now();
+                function tick(now){
+                    const t = Math.min(1, (now-start)/dur);
+                    const eased = 1-Math.pow(1-t, 3);
+                    const val = target*eased;
+                    el.textContent = dec>0 ? val.toFixed(2) : Math.round(val).toLocaleString('ru-RU');
+                    if(t<1) requestAnimationFrame(tick);
+                }
+                requestAnimationFrame(tick);
+            }, 400 + idx*80);
+        });
+
+        const c3d = document.getElementById('kp-3d-container');
+        if(c3d){
+            setTimeout(()=>{
+                try{ kpInit3D(kp, layout, c3d); }
+                catch(e){ console.error('[CUBICA] KP 3D err', e); }
+            }, 200);
+        }
+    }, 200);
+}
+
+/* ==================== INIT ==================== */
+function init(){
+    let payload = null;
+    try{
+        const sp = new URLSearchParams(location.search);
+        if(sp.has('kp')) payload = sp.get('kp');
+    } catch(e){}
+
+    // Демо-режим: если нет payload — берём тестовый
+    if(!payload){
+        console.log('[CUBICA] Нет ?kp= в URL, загружаю демо-payload');
+        payload = TEST_PAYLOAD;
+    }
+
+    if(!payload){
+        document.getElementById('kp-content').innerHTML =
+            '<div class="kp-empty"><h2>Нет данных для КП</h2>' +
+            '<p>Откройте эту страницу по кнопке «Коммерческое предложение» в калькуляторе CUBICA.</p></div>';
+        return;
+    }
+
+    let raw;
+    try{
+        const json = b64dec(payload);
+        if(!json) throw new Error('Не удалось декодировать base64');
+        raw = JSON.parse(json);
+    } catch(e){
+        console.error('[CUBICA] decode/parse error:', e);
+        document.getElementById('kp-content').innerHTML =
+            '<div class="kp-empty"><h2>Ошибка чтения КП</h2><p>'+escapeHtml(e.message)+'</p></div>';
+        return;
+    }
+
+    let kp;
+    try{
+        kp = normalizeKp(raw);
+    } catch(e){
+        console.error('[CUBICA] normalize error:', e);
+        document.getElementById('kp-content').innerHTML =
+            '<div class="kp-empty"><h2>Ошибка данных КП</h2><p>'+escapeHtml(e.message)+'</p></div>';
+        return;
+    }
+
+    // Показываем что распарсили (помогает диагностике)
+    console.group('[CUBICA] Парсинг payload');
+    console.log('L_in =', kp.L_in, '(', typeof raw.L_in !== 'undefined' ? 'L_in' : (typeof raw.L0_in !== 'undefined' ? 'L0_in→L_in' : '?'), ')');
+    console.log('W_in =', kp.W_in);
+    console.log('area =', kp.area, 'price =', kp.price);
+    console.log('p =', kp.p);
+    console.log('rows =', kp.rows);
+    console.log('polygon =', kp.polygon ? kp.polygon.length+' точек' : 'нет (прямоугольник)');
+    console.groupEnd();
+
+    if(!kp.v || kp.v !== 1){
+        console.warn('[CUBICA] Версия payload не 1, но продолжаю:', kp.v);
+    }
+
+    renderKp(kp);
+}
+
+// Запуск после загрузки DOM
+if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 </script>
 </body>
 </html>
