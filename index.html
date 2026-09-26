@@ -66,11 +66,8 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-bg-rail.s8{top:65%;width:38%;left:60%;animation-delay:-7s}
 .kp-wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:60px 24px 80px}
 .kp-hero{text-align:center;padding:20px 0 40px}
-
-/* ==== ЛОГО В ШАПКЕ — полная копия SVG заставки, но без анимации ==== */
 .kp-logo-scope{display:block;width:360px;max-width:90%;margin:0 auto 16px auto}
 .kp-logo-scope svg{width:100%;height:auto;display:block;margin:0 auto}
-
 .kp-h1{font-family:'Playfair Display',serif;font-size:48px;font-weight:600;color:#2c3e50;margin:0 0 12px;opacity:0;animation:kpSlideUp .8s .8s ease-out forwards;line-height:1.15}
 .kp-h2{font-size:14px;color:#7a8a99;font-weight:500;margin:0;letter-spacing:2.5px;text-transform:uppercase;opacity:0;animation:kpSlideUp .8s 1s ease-out forwards}
 .kp-client{margin-top:24px;font-size:15px;color:#c49a6c;opacity:0;animation:kpSlideUp .8s 1.2s ease-out forwards;font-weight:500}
@@ -223,8 +220,13 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-/* ==================== ДЕМО-PAYLOAD ==================== */
-const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NjAwMCwiV19pbiI6NDAwMCwiYXJlYSI6MjQsImNvbG9yIjoiZGVudmVyIiwicmFpbFNwZWMiOiI1MCozMCIsInByaWNlIjo1NDAwLCJjdXJyZW5jeSI6IkJZTiIsIm1hbmFnZXIiOiLQmNCy0LDQvSDQn9C10YLRgNC+0LIiLCJwaG9uZSI6Iis3OTAwMDAwMDAwMCIsInZhbGlkIjoiMzEuMTIuMjAyNiIsInAiOnsicmFpbFciOjUwLCJyYWlsSCI6MzAsImdhcCI6MTUsImNhcHMiOjIsImFuZ2xlIjowfSwiciI6MCwicm93cyI6W3sibGFiZWwiOiLQoNC10LnQutCwIDUwINGFIDMwINC80LwiLCJxdHkiOjE2MH0seyJsYWJlbCI6ItCh0YLRgNC40L3Qs9C10YAgKNC90LXQstC40LTQuNC80YvQuSDRjdC70LXQvNC10L3RgikiLCJxdHkiOjV9LHsibGFiZWwiOiLQn9C+0LTQstC10YEg0L/RgNGD0LbQuNC90L3Ri9C5IiwicXR5Ijo2MH0seyJsYWJlbCI6ItCa0YDQtdC/0LXQttC4INC4INC80L7QvdGC0LDQtiIsInF0eSI6MX1dfQ==";
+/* ==================== ДЕМО-PAYLOAD ====================
+   v3: обновлён, чтобы проверить:
+   — 2D с подписями размеров
+   — спецификация рейки в м.п. (pieces[])
+   — параметры помещения без L/W для полигона (сейчас прямоугольник, но поле pieces для реек)
+*/
+const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NjAwMCwiV19pbiI6NDAwMCwiYXJlYSI6MjQsImNvbG9yIjoiZGVudmVyIiwicmFpbFNwZWMiOiI1MCozMCIsInByaWNlIjo1NDAwLCJjdXJyZW5jeSI6IkJZTiIsIm1hbmFnZXIiOiLQmNCy0LDQvSDQn9C10YLRgNC+0LIiLCJwaG9uZSI6Iis3OTAwMDAwMDAwMCIsInZhbGlkIjoiMzEuMTIuMjAyNiIsInAiOnsicmFpbFciOjUwLCJyYWlsSCI6MzAsImdhcCI6MTUsImNhcHMiOjIsImFuZ2xlIjowfSwiciI6MCwicm93cyI6W3sibGFiZWwiOiLQoNC10LnQutCwIDUwINGFIDMwIiwicXR5IjoxNjAsInBpZWNlcyI6WzQwMDAsNDAwMCwzMDAwLDMwMDAsMjUwMCwyNTAwLDIwMDAsMjAwMCwxNTAwLDE1MDAsMTAwMCwxMDAwXX0seyJsYWJlbCI6ItCh0YLRgNC40L3Qs9C10YAgKNC90LXQstC40LTQuNC80YvQuSDRjdC70LXQvNC10L3RgikiLCJxdHkiOjV9LHsibGFiZWwiOiLQn9C+0LTQstC10YEg0L/RgNGD0LbQuNC90L3Ri9C5IiwicXR5Ijo2MH0seyJsYWJlbCI6ItCa0YDQtdC/0LXQttC4INC4INC80L7QvdGC0LDQtiIsInF0eSI6MX1dfQ==";
 
 /* ==================== ЗАСТАВКА ==================== */
 (function(){
@@ -366,21 +368,39 @@ function recalcLayout(kp){
         }
         perStringerSegments.push({x:gx, origX:gx, segs:strSegList, hangers});
     }
-    return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, caps:kp.p.caps};
+    return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, caps:kp.p.caps, isPolygon:!!polygon};
 }
 
-/* ==================== 2D ==================== */
+/* ==================== 2D СХЕМА С ПОДПИСЯМИ РАЗМЕРОВ ==================== */
 function kpBuild2DScheme(layout){
-    const {L_in, W_in, polygon} = layout;
-    const width = 800, height = 500, padding = 40;
-    const s = Math.min((width-2*padding)/L_in, (height-2*padding)/W_in);
+    const {L_in, W_in, polygon, isPolygon} = layout;
+    const width = 800, height = 500;
+    // Отступы: сверху и снизу — под подписи размеров + 40px рамки
+    const paddingTop = 60, paddingBottom = 60, paddingLeft = 80, paddingRight = 80;
+    const drawW = width - paddingLeft - paddingRight;
+    const drawH = height - paddingTop - paddingBottom;
+    const s = Math.min(drawW/L_in, drawH/W_in);
     const dw = L_in*s, dh = W_in*s;
-    const ox = (width-dw)/2, oy = (height-dh)/2;
+    const ox = paddingLeft + (drawW - dw)/2;
+    const oy = paddingTop + (drawH - dh)/2;
+
     let svg = '<svg viewBox="0 0 '+width+' '+height+'" xmlns="http://www.w3.org/2000/svg" style="background:#fdfcfb;border-radius:8px">';
+
+    // Стили для размерных линий
+    svg += '<style>' +
+        '.kp-dim-line{stroke:#c49a6c;stroke-width:1;}' +
+        '.kp-dim-tick{stroke:#c49a6c;stroke-width:1.5;}' +
+        '.kp-dim-text{fill:#c49a6c;font-family:Inter,sans-serif;font-size:14px;font-weight:600;}' +
+        '.kp-dim-bg{fill:#fdfcfb;}' +
+    '</style>';
+
     svg += '<defs><clipPath id="kp-clip">';
     if(polygon) svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'"/>';
     else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';
-    svg += '</clipPath></defs><g clip-path="url(#kp-clip)">';
+    svg += '</clipPath></defs>';
+
+    // Рейки
+    svg += '<g clip-path="url(#kp-clip)">';
     for(const rseg of layout.perRailSegments){
         const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
         const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
@@ -394,8 +414,49 @@ function kpBuild2DScheme(layout){
         }
     }
     svg += '</g>';
+
+    // Контур помещения
     if(polygon) svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
     else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+
+    // ===== ПОДПИСИ РАЗМЕРОВ (только для прямоугольника) =====
+    if(!isPolygon){
+        // Длина — сверху, над помещением
+        const dimY = oy - 30;
+        const cx = ox + dw/2;
+
+        // Линия
+        svg += '<line class="kp-dim-line" x1="'+ox+'" y1="'+dimY+'" x2="'+(ox+dw)+'" y2="'+dimY+'"/>';
+        // Засечки
+        svg += '<line class="kp-dim-tick" x1="'+ox+'" y1="'+(dimY-6)+'" x2="'+ox+'" y2="'+(dimY+6)+'"/>';
+        svg += '<line class="kp-dim-tick" x1="'+(ox+dw)+'" y1="'+(dimY-6)+'" x2="'+(ox+dw)+'" y2="'+(dimY+6)+'"/>';
+        // Стрелки
+        svg += '<polygon points="'+ox+','+dimY+' '+(ox+8)+','+(dimY-4)+' '+(ox+8)+','+(dimY+4)+'" fill="#c49a6c"/>';
+        svg += '<polygon points="'+(ox+dw)+','+dimY+' '+(ox+dw-8)+','+(dimY-4)+' '+(ox+dw-8)+','+(dimY+4)+'" fill="#c49a6c"/>';
+        // Подпись с фоном (чтобы не пересекалась с линией)
+        const txtL = L_in + ' мм';
+        const boxW = txtL.length * 8 + 16;
+        svg += '<rect class="kp-dim-bg" x="'+(cx - boxW/2)+'" y="'+(dimY-9)+'" width="'+boxW+'" height="18" rx="4"/>';
+        svg += '<text class="kp-dim-text" x="'+cx+'" y="'+(dimY+5)+'" text-anchor="middle">'+txtL+'</text>';
+
+        // Ширина — слева, вдоль помещения
+        const dimX = ox - 30;
+        const cy = oy + dh/2;
+
+        svg += '<line class="kp-dim-line" x1="'+dimX+'" y1="'+oy+'" x2="'+dimX+'" y2="'+(oy+dh)+'"/>';
+        svg += '<line class="kp-dim-tick" x1="'+(dimX-6)+'" y1="'+oy+'" x2="'+(dimX+6)+'" y2="'+oy+'"/>';
+        svg += '<line class="kp-dim-tick" x1="'+(dimX-6)+'" y1="'+(oy+dh)+'" x2="'+(dimX+6)+'" y2="'+(oy+dh)+'"/>';
+        svg += '<polygon points="'+dimX+','+oy+' '+(dimX-4)+','+(oy+8)+' '+(dimX+4)+','+(oy+8)+'" fill="#c49a6c"/>';
+        svg += '<polygon points="'+dimX+','+(oy+dh)+' '+(dimX-4)+','+(oy+dh-8)+' '+(dimX+4)+','+(oy+dh-8)+'" fill="#c49a6c"/>';
+        const txtW = W_in + ' мм';
+        const boxH = txtW.length * 8 + 16;
+        // Повёрнутая подпись ширины
+        svg += '<g transform="translate('+(dimX-10)+','+cy+') rotate(-90)">';
+        svg += '<rect class="kp-dim-bg" x="'+(-boxH/2)+'" y="-9" width="'+boxH+'" height="18" rx="4"/>';
+        svg += '<text class="kp-dim-text" x="0" y="5" text-anchor="middle">'+txtW+'</text>';
+        svg += '</g>';
+    }
+
     svg += '</svg>';
     return svg;
 }
@@ -580,7 +641,16 @@ function normalizeKp(raw){
     kp.manager   = kp.manager   || 'Менеджер';
     kp.phone     = kp.phone     || '';
     kp.valid     = kp.valid     || null;
-    kp.rows = Array.isArray(kp.rows) ? kp.rows.filter(r => r && (r.label != null)).map(r => ({label: String(r.label), qty: num(r.qty, 0)})) : [];
+
+    // Строки спецификации: сохраняем pieces[], unit, length_mm
+    kp.rows = Array.isArray(kp.rows) ? kp.rows.filter(r => r && (r.label != null)).map(r => {
+        const row = {label: String(r.label), qty: num(r.qty, 0)};
+        if(Array.isArray(r.pieces)) row.pieces = r.pieces.map(v => num(v, 0)).filter(v => v > 0);
+        if(r.length_mm != null) row.length_mm = num(r.length_mm, 0);
+        if(r.unit) row.unit = String(r.unit);
+        return row;
+    }) : [];
+
     if(kp.polygon && Array.isArray(kp.polygon)){
         kp.polygon = kp.polygon.filter(p => Array.isArray(p) && p.length >= 2).map(p => [Number(p[0]), Number(p[1])]).filter(p => isFinite(p[0]) && isFinite(p[1]));
         if(kp.polygon.length < 3) kp.polygon = null;
@@ -588,11 +658,38 @@ function normalizeKp(raw){
     return kp;
 }
 
-/* ==================== ЛОГОТИП ДЛЯ ШАПКИ КП ====================
-   Буквально скопирован из блока #splash с теми же классами .st0/.st1/.st2/.title/.slogan.
-   Обёрнут в .kp-logo-scope, чтобы стили не конфликтовали с заставкой.
-   Без класса .play — финальный статичный вид.
-*/
+/* ==================== РАСЧЁТ РЕЙКИ В М.П. ==================== */
+// Определяем, является ли строка спецификации «рейкой».
+// Признак: явный unit="mp", либо в label есть «рейк», либо есть pieces[]
+function isRailRow(row){
+    if(row.unit === 'mp') return true;
+    if(Array.isArray(row.pieces) && row.pieces.length > 0) return true;
+    const lbl = String(row.label || '').toLowerCase();
+    return /рейк|rail/.test(lbl);
+}
+
+// Возвращает { total_mm, source } — итоговую длину всех реек в мм и источник
+function computeRailTotalMm(row, layout){
+    // 1. Если у строки есть pieces[] — суммируем длины
+    if(Array.isArray(row.pieces) && row.pieces.length > 0){
+        const sum = row.pieces.reduce((a,b) => a + b, 0);
+        return { total_mm: sum, source: 'pieces[]' };
+    }
+    // 2. Если у строки есть типовая длина length_mm — qty × length_mm
+    if(row.length_mm && row.length_mm > 0 && row.qty > 0){
+        return { total_mm: row.qty * row.length_mm, source: 'qty × length_mm' };
+    }
+    // 3. Иначе — суммируем по фактической раскладке (только если строка одна и это рейка)
+    const layoutMm = layout.perRailSegments.reduce((s,r) => s + r.len, 0);
+    return { total_mm: layoutMm, source: 'layout' };
+}
+
+// Форматирование м.п.: 2 знака после запятой
+function formatMp(mm){
+    return (mm / 1000).toFixed(2).replace('.', ',');
+}
+
+/* ==================== ЛОГОТИП ДЛЯ ШАПКИ КП (из заставки) ==================== */
 function kpHeaderLogoSvg(){
     return '' +
     '<div class="kp-logo-scope">' +
@@ -677,24 +774,46 @@ function renderKp(kp){
         return;
     }
     const layout = recalcLayout(kp);
-    const rowsHtml = kp.rows.length
-        ? kp.rows.map(r=>'<tr><td>'+escapeHtml(r.label)+'</td><td class="qty">'+r.qty+' шт.</td></tr>').join('')
-        : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
+
+    // ===== СТРОКИ СПЕЦИФИКАЦИИ =====
+    // Для строк, которые являются рейками — считаем м.п. вместо штук
+    const rowsHtml = kp.rows.length ? kp.rows.map(r => {
+        const lbl = String(r.label);
+        if(isRailRow(r)){
+            const { total_mm, source } = computeRailTotalMm(r, layout);
+            const mp = formatMp(total_mm);
+            return '<tr><td>Рейка '+escapeHtml(kp.railSpec)+'</td><td class="qty">'+mp+' м.п.</td></tr>';
+        }
+        return '<tr><td>'+escapeHtml(lbl)+'</td><td class="qty">'+r.qty+' шт.</td></tr>';
+    }).join('') : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
+
     const validUntil = kp.valid || getValidUntil();
+    const isPolygon = !!kp.polygon;
+
+    // ===== ПАРАМЕТРЫ ПОМЕЩЕНИЯ =====
+    // Если полигон → вместо L и W показываем одну карточку «Форма»
+    let statsHtml = '';
+    if(isPolygon){
+        statsHtml =
+            '<div class="kp-stat"><div class="kp-stat-lb">Форма</div><div class="kp-stat-vl" style="font-size:16px">Непрямоугольная</div></div>' +
+            '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>';
+    } else {
+        statsHtml =
+            '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>' +
+            '<div class="kp-stat"><div class="kp-stat-lb">Ширина</div><div class="kp-stat-vl"><span data-count="'+kp.W_in+'">0</span><small> мм</small></div></div>' +
+            '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>';
+    }
+    statsHtml +=
+        '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
+        '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
+        '<div class="kp-stat"><div class="kp-stat-lb">Шаг</div><div class="kp-stat-vl"><span data-count="'+layout.pitch+'">0</span><small> мм</small></div></div>';
 
     const html =
         '<div class="kp-hero">'+kpHeaderLogoSvg()+
         '<h1 class="kp-h1">Коммерческое предложение</h1>'+
-        '<p class="kp-h2">Потолок CUBICA · '+escapeHtml(kp.railSpec)+' · '+escapeHtml(kp.color)+'</p>' +
+        '<p class="kp-h2">Потолок CUBICA · '+escapeHtml(kp.railSpec)+' · '+escapeHtml(kp.color)+'</p>'+
         '<p class="kp-client">Менеджер: <b style="color:#2c3e50">'+escapeHtml(kp.manager)+'</b></p></div>'+
-        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">1</span>Параметры помещения</h2><div class="kp-grid">'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Ширина</div><div class="kp-stat-vl"><span data-count="'+kp.W_in+'">0</span><small> мм</small></div></div>'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>'+
-        '<div class="kp-stat"><div class="kp-stat-lb">Шаг</div><div class="kp-stat-vl"><span data-count="'+layout.pitch+'">0</span><small> мм</small></div></div>'+
-        '</div></div>'+
+        '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">1</span>Параметры помещения</h2><div class="kp-grid">'+statsHtml+'</div></div>'+
         '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">2</span>3D-объём потолка</h2><div class="kp-3d" id="kp-3d-container"></div><div style="text-align:center;font-size:12px;color:#7a8a99;margin-top:10px">Потяните мышью, чтобы повернуть</div></div>'+
         '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">3</span>2D-схема укладки</h2><div class="kp-scheme-2d">'+kpBuild2DScheme(layout)+'</div></div>'+
         '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">4</span>Спецификация</h2><table class="kp-table"><thead><tr><th>Позиция</th><th style="text-align:right">Кол-во</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
@@ -776,7 +895,7 @@ function init(){
     }
     console.group('[CUBICA] Парсинг payload');
     console.log('L_in =', kp.L_in, 'W_in =', kp.W_in, 'area =', kp.area, 'price =', kp.price);
-    console.log('p =', kp.p, 'rows =', kp.rows.length);
+    console.log('p =', kp.p, 'rows =', kp.rows.length, 'polygon =', kp.polygon ? 'да' : 'нет');
     console.groupEnd();
     renderKp(kp);
 }
