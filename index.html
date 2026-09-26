@@ -6,8 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Коммерческое предложение CUBICA</title>
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -96,7 +95,6 @@ body{
         radial-gradient(ellipse at 90% 90%, rgba(44,62,80,.06) 0%, transparent 60%);
 }
 
-/* ============ ЗОЛОТЫЕ ЛУЧИ, ЛЕТЯЩИЕ ПО ДИАГОНАЛИ ============ */
 .kp-bg-rail{
     position:absolute;
     height:2px;
@@ -125,7 +123,6 @@ body{
 
 .kp-wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:60px 24px 80px}
 
-/* ============ ЛОГОТИП В ШАПКЕ КП ============ */
 .kp-hero{text-align:center;padding:20px 0 40px}
 .kp-logo-svg{
     display:block;
@@ -341,7 +338,6 @@ body{
 </head>
 <body>
 
-<!-- ===================== ЗАСТАВКА С ЛОГОТИПОМ ===================== -->
 <div id="splash">
     <div class="logo-wrap">
         <svg id="logoSvg"
@@ -420,7 +416,6 @@ body{
     </div>
 </div>
 
-<!-- ===================== ФОН КП ===================== -->
 <div class="kp-bg">
     <div class="kp-bg-rail s1"></div>
     <div class="kp-bg-rail s2"></div>
@@ -434,16 +429,20 @@ body{
 
 <div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
 
-<!-- ===================== ЛОГИКА ===================== -->
-<script>
-// ===== ТЕСТОВЫЕ ДАННЫЕ (реальный payload от калькулятора) =====
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+console.log('=== КП CUBICA ===');
+console.log('THREE:', typeof THREE);
+console.log('OrbitControls:', typeof OrbitControls);
+
 const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NTQwMCwiV19pbiI6NDIwMCwiYXJlYSI6MjIuNjgsImNvbG9yIjoiRGVudmVyIiwicmFpbFNwZWMiOiI1MC81MCIsInByaWNlIjoyMTU0LjYsImN1cnJlbmN5IjoiQllOIiwiY29sb3Jfa2V5IjoiZGVudmVyIiwibWFuYWdlciI6ItCc0LXQvdC10LTQttC10YAgQ1VCSUNBIiwicGhvbmUiOiIrMzc1ICgyOSkgMDAwLTAwLTAwIiwidmFsaWQiOiLQv9C+INGD0LzQvtC70YfQsNC90LjRjiIsInAiOnsicmFpbFciOjUwLCJyYWlsSCI6NTAsImdhcCI6NDAsImNvbG9yIjoiZGVudmVyIiwiY2FwcyI6ZmFsc2UsImFuZ2xlIjpmYWxzZX0sInIiOjAsInJvd3MiOlt7ImxhYmVsIjoi0KDQtdC50LrQsCBDdWJpY2EgNTAvNTAgRGVudmVyIDQwMDAg0LzQvCIsInF0eSI6NH0seyJsYWJlbCI6ItCg0LXQudC60LAgQ3ViaWNhIDUwLzUwIERlbnZlciAzMDAwINC80LwiLCJxdHkiOjJ9LHsibGFiZWwiOiLQoNC10LnQutCwIEN1YmljYSA1MC81MCBEZW52ZXIgMzkwMCDQvNC8IiwicXR5IjoyfSx7ImxhYmVsIjoi0KDQtdC50LrQsCBDdWJpY2EgNTAvNTAgRGVudmVyIDI1MDAg0LzQvCIsInF0eSI6MX0seyJsYWJlbCI6ItCh0YLRgNC40L3Qs9C10YAgNTAvOTAgMzAwMCDQvNC8IiwicXR5IjoxMn0seyJsYWJlbCI6ItCf0L7QtNCy0LXRgSAo0YjQv9C40LvRjNC60LApIiwicXR5Ijo0OH0seyJsYWJlbCI6ItCQ0L3QutC10YAiLCJxdHkiOjQ4fV0sIm1lcmdlSW5mbyI6bnVsbH0=";
 
-// ====================== ЗАПУСК ЗАСТАВКИ ======================
 (function(){
     var svg = document.getElementById('logoSvg');
     var splash = document.getElementById('splash');
-
+    if(!svg || !splash) return;
     function play(){
         svg.classList.remove('play');
         void svg.getBoundingClientRect().width;
@@ -453,19 +452,18 @@ const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NTQwMCwiV19pbiI6NDIwMCwiYXJlYSI6MjIuNj
             setTimeout(function(){ splash.style.display = 'none'; }, 900);
         }, 5200);
     }
-
     window.addEventListener('load', function(){ setTimeout(play, 10); });
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         setTimeout(play, 10);
     }
 })();
 
-// ====================== КП ЛОГИКА ======================
 const WOOD_PROC={denver:{base:'#c9a166',dark:'#8a6b3a',opts:{grainDensity:170,warpAmp:3}},wellington:{base:'#9a8470',dark:'#5c4a38',opts:{grainDensity:170,warpAmp:3}},tokyo:{base:'#6a4530',dark:'#3a2418',opts:{grainDensity:170,warpAmp:3}},toronto:{base:'#5c4636',dark:'#241812',opts:{grainDensity:240,warpAmp:1.5,grainContrast:1.3,lightnessBands:40}},vancouver:{base:'#6a4a34',dark:'#2a1810',opts:{grainDensity:210,warpAmp:4.5,grainContrast:1.5,lightnessBands:55}},rio:{base:'#d4a05a',dark:'#8a5a20',opts:{grainDensity:140,warpAmp:2,grainContrast:0.8,lightnessBands:70}},stockholm:{base:'#9a7a56',dark:'#4a3020',opts:{grainDensity:180,warpAmp:2.5,grainContrast:1.1,lightnessBands:65}},sydney:{base:'#dbb070',dark:'#9a6830',opts:{grainDensity:120,warpAmp:3.5,grainContrast:1.4,lightnessBands:80}}};
-const RAIL_WALL_T=1.5,RAIL_FLANGE=5.0;const CARRIER_STOCK=3000,CARRIER_STEP_MAX=1000,CARRIER_W=30,CARRIER_H=20;const CARRIER_XSHIFT=50;const STRINGER_WALL_EDGE=100;const RAIL_END_OVERHANG_MAX=300;const HANGER_WALL_EDGE=100,HANGER_STEP_MAX=1000;const HANGER_ROD=300,MAX_RAILS=200;const RAIL_RULE_MIN_LEN=300,RAIL_ABSOLUTE_MIN_LEN=50;
+const COLORS={ral9003:{hex:'#ecece7'},ral9006:{hex:'#a5a8a9'},ral7004:{hex:'#9ea0a3'},ral7024:{hex:'#474b4e'},ral9005:{hex:'#0a0a0a'}};
+const RAIL_WALL_T=1.5,RAIL_FLANGE=5.0;const CARRIER_STOCK=3000,CARRIER_STEP_MAX=1000,CARRIER_W=30,CARRIER_H=20;const CARRIER_XSHIFT=50;const STRINGER_WALL_EDGE=100;const RAIL_END_OVERHANG_MAX=300;const HANGER_WALL_EDGE=100,HANGER_STEP_MAX=1000;const MAX_RAILS=200;const RAIL_RULE_MIN_LEN=300,RAIL_ABSOLUTE_MIN_LEN=50;
+
 function b64dec(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function polyBBox(poly){let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;for(const p of poly){if(p[0]<xmin)xmin=p[0];if(p[0]>xmax)xmax=p[0];if(p[1]<ymin)ymin=p[1];if(p[1]>ymax)ymax=p[1];}return{xmin,ymin,xmax,ymax,W:xmax-xmin,H:ymax-ymin};}
 function polyArea(poly){let s=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s)/2;}
 function polyPerimeter(poly){let p=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];p+=Math.hypot(b[0]-a[0],b[1]-a[1]);}return p;}
 function pointInPoly(poly,px,py){let inside=false,n=poly.length;for(let i=0,j=n-1;i<n;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const inter=((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi);if(inter)inside=!inside;}return inside;}
@@ -480,7 +478,7 @@ function makeWoodTexture(base,dark,opts){const c=makeWoodCanvas(base,dark,opts);
 function makeRailAsBoxes(railW,railH,wallT,flange,length,material){const g=new THREE.Group();const halfW=railW/2;let f=flange;const maxF=halfW-wallT*1.2;if(f>maxF)f=maxF;const bottom=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,railW-2*wallT),material);bottom.position.set(0,wallT/2,0);g.add(bottom);const leftWall=new THREE.Mesh(new THREE.BoxGeometry(length,railH,wallT),material);leftWall.position.set(0,railH/2,-halfW+wallT/2);g.add(leftWall);const rightWall=new THREE.Mesh(new THREE.BoxGeometry(length,railH,wallT),material);rightWall.position.set(0,railH/2,halfW-wallT/2);g.add(rightWall);const leftFlange=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,f),material);leftFlange.position.set(0,railH-wallT/2,-halfW+f/2);g.add(leftFlange);const rightFlange=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,f),material);rightFlange.position.set(0,railH-wallT/2,halfW-f/2);g.add(rightFlange);return g;}
 
 function recalcLayout(kp){
-const{railW,railH,gap,caps,angle}=kp.p;
+const{railW,railH,gap}=kp.p;
 const L=kp.L_in,W=kp.W_in;
 const polygon=kp.polygon?kp.polygon.map(p=>[p[0],p[1]]):null;
 const rotationDeg=kp.r||0;const rotRad=rotationDeg*Math.PI/180;const cosR=Math.cos(rotRad),sinR=Math.sin(rotRad);const absC=Math.abs(cosR),absS=Math.abs(sinR);
@@ -517,10 +515,9 @@ if(gyRange>50){const gyList=computeWallAlignedPositions(gyRange,HANGER_WALL_EDGE
 }
 perStringerSegments.push({x:gx,origX:gx,segs:strSegList,hangers});
 }
-return{L_in:L,W_in:W,railW,railH,gap,pitch,rotationDeg,perRailSegments,perStringerSegments,polygon,caps};
+return{L_in:L,W_in:W,railW,railH,gap,pitch,rotationDeg,perRailSegments,perStringerSegments,polygon};
 }
 
-// ========== 2D-схема с размерами сторон ==========
 function kpBuild2DScheme(kp,layout){
 const{L_in,W_in,polygon}=layout;
 const width=800,height=520,padding=60;
@@ -536,7 +533,6 @@ svg+='<g clip-path="url(#kp-clip)">';
 for(const rseg of layout.perRailSegments){const sx0=ox+rseg.x0*s,sy0=oy+rseg.y0*s;const sx1=ox+rseg.x1*s,sy1=oy+rseg.y1*s;svg+='<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#c49a6c" stroke-width="'+Math.max(2,layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';}
 for(const sseg of layout.perStringerSegments){for(const sg of sseg.segs){const sx0=ox+sg.x0*s,sy0=oy+sg.y0*s;const sx1=ox+sg.x1*s,sy1=oy+sg.y1*s;svg+='<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#8fa0b8" stroke-width="2" stroke-linecap="round"/>';}}
 svg+='</g>';
-
 if(polygon){
     svg+='<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
     const cxP=polygon.reduce((sum,p)=>sum+p[0],0)/polygon.length;
@@ -565,12 +561,11 @@ svg+='</svg>';
 return svg;
 }
 
-// ========== 3D-сцена с ожиданием загрузки Three.js ==========
 function kpInit3D(kp,layout,container){
     var attempts=0;
     function tryInit(){
         attempts++;
-        if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined') {
+        if (typeof THREE === 'undefined' || typeof OrbitControls === 'undefined') {
             if(attempts < 40){
                 setTimeout(tryInit, 100);
             }else{
@@ -594,7 +589,7 @@ function kpInit3D(kp,layout,container){
             const s=Math.max(Lm,Wm,1);
             camera.position.set(Lm*0.9,s*0.7,Wm*1.2);
             camera.lookAt(0,railHm/2,0);
-            const controls=new THREE.OrbitControls(camera,canvas);
+            const controls=new OrbitControls(camera,canvas);
             controls.enableDamping=true;controls.dampingFactor=0.06;
             controls.autoRotate=true;controls.autoRotateSpeed=1.2;
             controls.enableZoom=true;controls.enablePan=false;
@@ -608,6 +603,7 @@ function kpInit3D(kp,layout,container){
             let mRailMat;
             const woodName=kp.p.color;
             if(WOOD_PROC[woodName]){const p=WOOD_PROC[woodName];mRailMat=new THREE.MeshLambertMaterial({map:makeWoodTexture(p.base,p.dark,p.opts),side:THREE.DoubleSide});}
+            else if(COLORS[woodName]){mRailMat=new THREE.MeshLambertMaterial({color:parseInt(COLORS[woodName].hex.replace('#',''),16),side:THREE.DoubleSide});}
             else{mRailMat=new THREE.MeshLambertMaterial({color:0xc9a166,side:THREE.DoubleSide});}
             const mCarrier=new THREE.MeshLambertMaterial({color:0xd0c8be});
             const railWm=layout.railW/1000;
@@ -690,7 +686,9 @@ function getValidUntil(){
 }
 
 function renderKp(kp){
+    console.log('renderKp start');
     const layout=recalcLayout(kp);
+    console.log('layout computed, rails:', layout.perRailSegments.length);
     const rowsHtml=kp.rows.map(r=>{const cls=r.merged?'style="background:rgba(196,154,108,.08);border-radius:6px"':'';return '<tr '+cls+'><td>'+escapeHtml(r.label)+'</td><td class="qty">'+r.qty+' шт.</td></tr>';}).join('');
     let mergeBlock='';
     if(kp.mergeInfo){
@@ -726,30 +724,8 @@ function renderKp(kp){
     '</g>' +
     '<g transform="scale(0.016) translate(5200, 4326.0483870968)">' +
     '<path transform="translate(0,0) rotate(180) scale(-1, 1)" class="slogan" d="M707 337q0 73 -23 103t-79 30q-34 0 -63 -16t-47 -42q1 -31 2 -64.5t1 -68.5v-279h-106v293q0 43 -2.5 76.5t-12 55.5t-27.5 33.5t-49 11.5q-35 0 -64 -14.5t-50 -38.5v-417h-110v416q0 27 -7.5 41t-25.5 14q-8 0 -11.5 -1t-8.5 -1q0 -1 -1 10t-3 25l-4 36q11 5 24.5 8.5 t29.5 3.5q30 0 51.5 -9.5t30.5 -39.5q32 26 73 41t80 15q43 0 82 -14t66 -52q34 29 74.5 48t90.5 19q60 0 97.5 -19.5t59.5 -49t30 -64.5t8 -66v-188q0 -28 1 -45.5t5 -28t11 -14.5t18 -4q7 0 15 1t19 3l11 -80q-20 -6 -39 -9.5t-36 -3.5q-26 0 -46.5 8.5t-34.5 28.5 t-22 52.5t-8 79.5v176v0z"/>' +
-    '<path transform="translate(908,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
-    '<path transform="translate(1453,0) rotate(180) scale(-1, 1)" class="slogan" d="M340 685v85h184v-643q0 -28 8 -39t24 -11q8 0 18 1t22 6l9 -68l-34 -12q-20 -7 -41 -7q-27 0 -45 7t-33 24q-27 -15 -66 -27t-108 -12q-39 0 -79.5 8.5t-72.5 34.5t-52.5 73.5t-20.5 125.5v58q0 83 17.5 135.5t48 82.5t71 41t85.5 11q59 0 92 -12t46 -23v161h-73z M413 439q-19 12 -50 21.5t-66 9.5q-30 0 -55 -7.5t-43 -29t-27.5 -60t-9.5 -100.5q0 -63 8.5 -102t25 -60.5t41 -28.5t56.5 -7q48 0 74.5 9.5t45.5 19.5v335z"/>' +
-    '<path transform="translate(2077,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>' +
-    '<path transform="translate(2642,0) rotate(180) scale(-1, 1)" class="slogan" d="M426 427l-77 -6l-5 41q-19 0 -42 -2.5t-43 -10t-33.5 -21t-13.5 -35.5v-393h-111v444l-66 -5l-3 78q30 11 64.5 18t71.5 12v-52q26 29 61.5 46.5t91.5 17.5q24 0 50 -2.5t55 -8.5v-121z"/>' +
-    '<path transform="translate(3092,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
-    '<path transform="translate(4012,0) rotate(180) scale(-1, 1)" class="slogan" d="M389 391l-3 61q-20 11 -48 14.5t-51 3.5q-21 0 -43.5 -5t-41.5 -21.5t-31.5 -48t-12.5 -83.5v-77q0 -54 12.5 -85t31 -47t40.5 -20.5t42 -4.5q59 0 100.5 8t77.5 20l26 -82q-37 -18 -92.5 -26t-112.5 -8q-45 0 -87 8t-74.5 32.5t-52.5 70t-20 121.5v102q0 75 21 121 t55 71.5t76.5 34t84.5 8.5q33 0 57.5 -1.5t45.5 -4.5t42 -7.5t47 -10.5l-13 -144h-76z"/>' +
-    '<path transform="translate(4538,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>' +
-    '<path transform="translate(5103,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
-    '<path transform="translate(5419,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>' +
-    '<path transform="translate(5699,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
-    '<path transform="translate(6015,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
-    '<path transform="translate(6650,0) rotate(180) scale(-1, 1)" class="slogan" d="M263 -122q24 0 46.5 5t40 17.5t28.5 35.5t13 59q2 5 3 10t1 10q-13 -8 -46 -17t-90 -9q-41 0 -80.5 9.5t-71 35.5t-51 72t-19.5 120v84q0 77 19.5 125.5t51 76.5t72 38t81.5 10q35 0 61.5 -4t46.5 -10t35 -14.5t28 -17.5q14 21 33 29.5t47 8.5q17 0 34.5 -5.5t40.5 -14.5 l-9 -68q-12 4 -22 5.5t-18 1.5q-16 0 -24 -12.5t-8 -41.5v-382q0 -85 -24 -134.5t-60 -75t-78 -32.5t-78 -7q-62 0 -111.5 14t-84.5 52l32 63q45 -20 82 -28.5t79 -8.5zM395 436q-20 14 -50.5 24.5t-67.5 10.5q-27 0 -51 -7t-41.5 -26.5t-28 -54.5t-10.5 -91v-42 q0 -56 11 -89t30 -51t43 -23.5t51 -5.5q44 0 70 5.5t44 14.5v335z"/>' +
-    '<path transform="translate(7538,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>' +
-    '<path transform="translate(8101,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
-    '<path transform="translate(8646,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>' +
-    '<path transform="translate(8926,0) rotate(180) scale(-1, 1)" class="slogan" d="M545 550v-415q0 -29 9 -44.5t27 -15.5q14 0 33 10l16 -70q-17 -8 -41.5 -16t-47.5 -8q-26 0 -49 12t-27 38q-11 -16 -29.5 -26t-41 -15t-47 -7t-46.5 -2q-39 0 -77 10t-67.5 36t-48 71.5t-18.5 116.5v240h-64v86h175v-304q0 -51 6 -83t19 -50t34 -24.5t51 -6.5 q20 0 41.5 4.5t39.5 16t30 31t12 48.5v368z"/>' +
-    '<path transform="translate(9562,0) rotate(180) scale(-1, 1)" class="slogan" d="M222 721v-168h116v-89h-117v-334q0 -52 34 -52q15 0 32 3t43 8l11 -79q-23 -5 -53.5 -11.5t-61.5 -6.5q-60 0 -87.5 47t-27.5 127v298h-89l8 89h70q9 20 15 56t6 102z"/>' +
-    '<path transform="translate(9940,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
-    '<path transform="translate(10256,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
-    '<path transform="translate(10801,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
-    '<path transform="translate(11436,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>' +
-    '</g>' +
-    '</svg>' +
-    '</div>';
+    '<path transform="translate(908,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>
+    '</g></svg></div>';
 
     const html=
     '<div class="kp-hero">'+
@@ -803,7 +779,8 @@ function renderKp(kp){
             }, delay);
         });
         const c3d=document.getElementById('kp-3d-container');
-        if(c3d)setTimeout(()=>{try{kpInit3D(kp,layout,c3d);}catch(e){console.warn('KP 3D err',e);}},200);
+        console.log('3D container:', !!c3d);
+        if(c3d)setTimeout(()=>{try{kpInit3D(kp,layout,c3d);}catch(e){console.error('KP 3D err:',e);}}, 300);
     },350);
 }
 
