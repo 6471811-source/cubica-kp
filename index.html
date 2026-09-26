@@ -4,6 +4,214 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<title>Тест 3D модели реек</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+body{margin:0;background:#f8f6f2;font-family:sans-serif;padding:20px}
+h1{font-size:18px;color:#2c3e50;margin:0 0 12px}
+#box{width:100%;max-width:900px;aspect-ratio:16/9;background:#f0ece6;border-radius:12px;border:1px solid rgba(196,154,108,.2);position:relative;overflow:hidden;margin:0 auto}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c49a6c;font-size:15px;text-align:center;padding:20px;font-weight:600}
+canvas{display:block;width:100%;height:100%}
+#info{max-width:900px;margin:12px auto 0;font-size:13px;color:#7a8a99;text-align:center}
+</style>
+</head>
+<body>
+<h1>Тест 3D: рейки CUBICA 50/50, зазор 40 мм, комната 5400×4200 мм</h1>
+<div id="box"><div id="msg">Загрузка Three.js...</div></div>
+<div id="info">Крутите мышью. Если видите серые продольные полосы — работает.</div>
+
+<script>
+window.addEventListener('load', function () {
+    var msg = document.getElementById('msg');
+    var box = document.getElementById('box');
+
+    if (typeof THREE === 'undefined') {
+        msg.innerHTML = '❌ Three.js НЕ загрузился.<br>CDN cdnjs.cloudflare.com недоступен.';
+        msg.style.color = '#e10004';
+        return;
+    }
+
+    // ====== ДАННЫЕ (то, что приходит из калькулятора) ======
+    var L_in = 5400;      // длина комнаты, мм
+    var W_in = 4200;      // ширина комнаты, мм
+    var railW = 50;       // ширина рейки, мм
+    var railH = 50;       // высота рейки, мм
+    var gap = 40;         // зазор между рейками, мм
+    // ======================================================
+
+    msg.textContent = '✓ Three.js загружен. Строю рейки...';
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0ece6);
+
+    var camera = new THREE.PerspectiveCamera(45, box.clientWidth / box.clientHeight, 0.05, 200);
+    camera.position.set(6, 5, 7);
+    camera.lookAt(0, 0, 0);
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(box.clientWidth, box.clientHeight, false);
+    box.appendChild(renderer.domElement);
+    msg.style.display = 'none';
+
+    // Свет
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    var d1 = new THREE.DirectionalLight(0xffd7a3, 0.9); d1.position.set(6, 10, 6); scene.add(d1);
+    var d2 = new THREE.DirectionalLight(0xffffff, 0.4); d2.position.set(-6, 6, -5); scene.add(d2);
+
+    // Вращение
+    var controls = null;
+    if (typeof THREE.OrbitControls !== 'undefined') {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.2;
+        controls.target.set(0, 0.025, 0);
+    }
+
+    // ====== Строим рейки ======
+    var pivot = new THREE.Group();
+    scene.add(pivot);
+
+    var Lm = L_in / 1000;   // 5.4 м
+    var Wm = W_in / 1000;   // 4.2 м
+    var railWm = railW / 1000;
+    var railHm = railH / 1000;
+    var gapM = gap / 1000;
+    var pitch = railWm + gapM;
+
+    var xOff = -Lm / 2;
+    var zOff = -Wm / 2;
+
+    // Сколько реек поместится
+    var nRails = Math.max(1, Math.floor((Wm + gapM) / pitch));
+    var totalSpan = nRails * railWm + (nRails - 1) * gapM;
+    var startZ = -totalSpan / 2 + railWm / 2;
+
+    // Материал рейки — процедурное дерево Denver
+    var woodCanvas = document.createElement('canvas');
+    woodCanvas.width = 256; woodCanvas.height = 256;
+    var ctx = woodCanvas.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, 256, 256);
+    grad.addColorStop(0, '#c9a166');
+    grad.addColorStop(1, '#8a6b3a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+    for (var i = 0; i < 170; i++) {
+        var x = Math.random() * 256;
+        ctx.strokeStyle = 'rgba(0,0,0,' + (0.04 + Math.random() * 0.09) + ')';
+        ctx.lineWidth = 0.4 + Math.random() * 1.3;
+        ctx.beginPath();
+        var y = 0, xx = x;
+        ctx.moveTo(xx, y);
+        while (y < 256) {
+            y += 6 + Math.random() * 10;
+            xx += (Math.random() - 0.5) * 3;
+            ctx.lineTo(xx, y);
+        }
+        ctx.stroke();
+    }
+    var tex = new THREE.CanvasTexture(woodCanvas);
+    tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+    var mRail = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+
+    // Одна рейка = П-образный профиль из 5 коробок (низ + 2 стенки + 2 полки)
+    function makeRail(lenM) {
+        var g = new THREE.Group();
+        var wallT = 1.5 / 1000;
+        var flange = Math.min(5 / 1000, railWm / 2 - wallT * 1.2);
+        var halfW = railWm / 2;
+
+        var bottom = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, railWm - 2 * wallT), mRail);
+        bottom.position.set(0, wallT / 2, 0);
+        g.add(bottom);
+
+        var left = new THREE.Mesh(new THREE.BoxGeometry(lenM, railHm, wallT), mRail);
+        left.position.set(0, railHm / 2, -halfW + wallT / 2);
+        g.add(left);
+
+        var right = new THREE.Mesh(new THREE.BoxGeometry(lenM, railHm, wallT), mRail);
+        right.position.set(0, railHm / 2, halfW - wallT / 2);
+        g.add(right);
+
+        var lf = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, flange), mRail);
+        lf.position.set(0, railHm - wallT / 2, -halfW + flange / 2);
+        g.add(lf);
+
+        var rf = new THREE.Mesh(new THREE.BoxGeometry(lenM, wallT, flange), mRail);
+        rf.position.set(0, railHm - wallT / 2, halfW - flange / 2);
+        g.add(rf);
+
+        return g;
+    }
+
+    // Ставим N реек параллельно оси X
+    for (var i = 0; i < nRails; i++) {
+        var z = startZ + i * pitch;
+        var rail = makeRail(Lm);
+        rail.position.set(xOff + Lm / 2, 0, z);
+        pivot.add(rail);
+    }
+
+    // Стрингеры (профиль, который идёт перпендикулярно рейкам, поверх них)
+    var carrierWm = 30 / 1000;
+    var carrierHm = 20 / 1000;
+    var mCarrier = new THREE.MeshLambertMaterial({ color: 0xa8b0b8 });
+
+    var nCarriers = Math.max(2, Math.ceil(Lm / 1.0));
+    for (var c = 0; c < nCarriers; c++) {
+        var cx = xOff + (c + 0.5) * (Lm / nCarriers);
+        var carrier = new THREE.Mesh(
+            new THREE.BoxGeometry(carrierWm, carrierHm, Wm),
+            mCarrier
+        );
+        carrier.position.set(cx, railHm + carrierHm / 2, 0);
+        pivot.add(carrier);
+    }
+
+    // Пол-подложка (полупрозрачный)
+    var floorGeo = new THREE.PlaneGeometry(Lm + 0.6, Wm + 0.6);
+    var floorMat = new THREE.MeshLambertMaterial({
+        color: 0xffffff, side: THREE.DoubleSide,
+        transparent: true, opacity: 0.15, depthWrite: false
+    });
+    var floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01;
+    pivot.add(floor);
+
+    // Камера в правильные координаты
+    var s = Math.max(Lm, Wm, 1);
+    camera.position.set(Lm * 0.9, s * 0.8, Wm * 1.1);
+    if (controls) {
+        controls.target.set(0, railHm / 2, 0);
+        controls.update();
+    } else {
+        camera.lookAt(0, railHm / 2, 0);
+    }
+
+    // Анимация
+    function loop() {
+        requestAnimationFrame(loop);
+        if (controls) controls.update();
+        renderer.render(scene, camera);
+    }
+    loop();
+
+    window.addEventListener('resize', function () {
+        var W = box.clientWidth, H = box.clientHeight;
+        camera.aspect = W / H;
+        camera.updateProjectionMatrix();
+        renderer.setSize(W, H, false);
+    });
+});
+</script>
+</body>
+</html<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Коммерческое предложение CUBICA</title>
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
