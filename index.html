@@ -1,0 +1,826 @@
+# cubica-kp
+Коммерческое предложение Cubica
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Коммерческое предложение CUBICA</title>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ===================== ЗАСТАВКА С ЛОГОТИПОМ ===================== */
+#splash{
+    position:fixed;inset:0;z-index:9999;
+    background:#f8f6f2;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    transition:opacity .8s ease, visibility .8s ease;
+}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+#splash .logo-wrap{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;background:#f8f6f2;
+}
+#splash .logo-wrap svg{
+    display:block;width:100%;height:100%;
+    transform-origin:center center;
+    transform:translateX(8vw);
+}
+#splash .logo-wrap svg.play{animation:zoomOut 4s cubic-bezier(.1,.9,.35,1) forwards}
+@keyframes zoomOut{
+    0%{transform:translateX(8vw) scale(5)}
+    100%{transform:translateX(8vw) scale(1)}
+}
+#splash .sign-anim .st0,
+#splash .sign-anim .st1 polygon,
+#splash .sign-anim .st2 polygon{
+    transform-box:fill-box;transform-origin:center;
+}
+@keyframes flyFromTopRight{
+    0%{transform:translate(900px,-900px);opacity:0}
+    5%{opacity:1}
+    100%{transform:translate(0,0);opacity:1}
+}
+@keyframes flyFromBottomLeft{
+    0%{transform:translate(-900px,900px);opacity:0}
+    5%{opacity:1}
+    100%{transform:translate(0,0);opacity:1}
+}
+#splash .logo-wrap svg.play .sign-anim .tr{animation:flyFromTopRight 3.5s cubic-bezier(.1,.9,.35,1) both}
+#splash .logo-wrap svg.play .sign-anim .bl{animation:flyFromBottomLeft 3.5s cubic-bezier(.1,.9,.35,1) both}
+#splash .logo-wrap svg.play .sign-anim .d0{animation-delay:0s}
+#splash .logo-wrap svg.play .sign-anim .d1{animation-delay:.05s}
+#splash .logo-wrap svg.play .sign-anim .d2{animation-delay:.1s}
+#splash .logo-wrap svg.play .sign-anim .d3{animation-delay:.15s}
+#splash .logo-wrap svg.play .sign-anim .d4{animation-delay:.2s}
+#splash .logo-wrap svg.play .sign-anim .d5{animation-delay:.25s}
+#splash .logo-wrap svg.play .sign-anim .d6{animation-delay:.3s}
+#splash .logo-wrap svg.play .sign-anim .d7{animation-delay:.35s}
+#splash .logo-wrap svg.play .sign-anim .d8{animation-delay:.4s}
+
+#splash .text-anim path{opacity:0}
+#splash .logo-wrap svg.play .text-anim .b1{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.2s forwards}
+#splash .logo-wrap svg.play .text-anim .b2{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.35s forwards}
+#splash .logo-wrap svg.play .text-anim .b3{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.5s forwards}
+#splash .logo-wrap svg.play .text-anim .b4{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.65s forwards}
+#splash .logo-wrap svg.play .text-anim .b5{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.8s forwards}
+#splash .logo-wrap svg.play .text-anim .b6{animation:letterReveal 1.6s cubic-bezier(.3,0,.05,1) 3.95s forwards}
+#splash .logo-wrap svg.play .text-anim .slogan{animation:letterReveal 1.8s cubic-bezier(.3,0,.05,1) 4.3s forwards}
+@keyframes letterReveal{
+    0%{opacity:0;filter:blur(20px)}
+    20%{opacity:.15;filter:blur(15px)}
+    45%{opacity:.45;filter:blur(9px)}
+    75%{opacity:.8;filter:blur(3px)}
+    100%{opacity:1;filter:blur(0)}
+}
+
+/* ===================== КП (оформление) ===================== */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+    font-family:'Inter',sans-serif;
+    background:#f8f6f2;
+    color:#2c3e50;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+}
+.kp-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#f8f6f2}
+.kp-bg::before{
+    content:'';position:absolute;inset:0;
+    background:
+        radial-gradient(ellipse at 10% 10%, rgba(196,154,108,.10) 0%, transparent 60%),
+        radial-gradient(ellipse at 90% 90%, rgba(44,62,80,.06) 0%, transparent 60%);
+}
+
+/* ============ ЗОЛОТЫЕ ЛУЧИ, ЛЕТЯЩИЕ ПО ДИАГОНАЛИ ============ */
+.kp-bg-rail{
+    position:absolute;
+    height:2px;
+    background:linear-gradient(90deg,transparent 0%,rgba(230,180,120,.75) 30%,rgba(230,180,120,.95) 50%,rgba(230,180,120,.75) 70%,transparent 100%);
+    opacity:.7;
+    border-radius:2px;
+    box-shadow:0 0 12px rgba(196,154,108,.5);
+    transform-origin:center center;
+    will-change:transform;
+    animation:kpRailFlowDiag 14s linear infinite;
+}
+@keyframes kpRailFlowDiag{
+    0%{ transform:translate(-150%, -150%) rotate(-25deg); opacity:0; }
+    10%{ opacity:.75; }
+    90%{ opacity:.75; }
+    100%{ transform:translate(150%, 150%) rotate(-25deg); opacity:0; }
+}
+.kp-bg-rail.s1{top:10%;width:45%;left:5%;  animation-delay:0s;   opacity:.9}
+.kp-bg-rail.s2{top:25%;width:60%;left:15%; animation-delay:-2s;  opacity:.55}
+.kp-bg-rail.s3{top:40%;width:40%;left:35%; animation-delay:-4s;  opacity:.85}
+.kp-bg-rail.s4{top:55%;width:55%;left:20%; animation-delay:-6s;  opacity:.6}
+.kp-bg-rail.s5{top:70%;width:50%;left:40%; animation-delay:-8s;  opacity:.75}
+.kp-bg-rail.s6{top:85%;width:35%;left:10%; animation-delay:-10s; opacity:.5}
+.kp-bg-rail.s7{top:18%;width:42%;left:55%; animation-delay:-1s;  opacity:.6}
+.kp-bg-rail.s8{top:65%;width:38%;left:60%; animation-delay:-7s;  opacity:.7}
+
+.kp-wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:60px 24px 80px}
+
+/* ============ ЛОГОТИП В ШАПКЕ КП ============ */
+.kp-hero{text-align:center;padding:20px 0 40px}
+.kp-logo-svg{
+    display:block;
+    width:360px;
+    max-width:90%;
+    margin:0 auto 16px auto;
+    padding:0;
+    text-align:center;
+}
+.kp-logo-svg svg{
+    width:100%;
+    height:auto;
+    display:block;
+    margin:0 auto;
+}
+
+.kp-h1{
+    font-family:'Playfair Display',serif;
+    font-size:48px;font-weight:600;color:#2c3e50;
+    margin:0 0 12px;opacity:0;
+    animation:kpSlideUp .8s .8s ease-out forwards;line-height:1.15;
+}
+.kp-h2{
+    font-size:14px;color:#7a8a99;font-weight:500;
+    margin:0;letter-spacing:2.5px;text-transform:uppercase;
+    opacity:0;animation:kpSlideUp .8s 1s ease-out forwards;
+}
+.kp-client{
+    margin-top:24px;font-size:15px;color:#c49a6c;
+    opacity:0;animation:kpSlideUp .8s 1.2s ease-out forwards;font-weight:500;
+}
+@keyframes kpSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+.kp-section{
+    margin:32px 0;padding:32px 36px;
+    background:#ffffff;
+    border:1px solid rgba(196,154,108,.15);
+    border-radius:16px;
+    box-shadow:0 10px 40px rgba(44,62,80,.04);
+    opacity:0;transform:translateY(40px);
+    transition:opacity .7s ease,transform .7s ease, box-shadow .3s ease;
+}
+.kp-section:hover{box-shadow:0 15px 50px rgba(44,62,80,.08)}
+.kp-section.visible{opacity:1;transform:translateY(0)}
+.kp-sec-title{
+    display:flex;align-items:center;gap:14px;
+    font-family:'Playfair Display',serif;
+    font-size:22px;font-weight:600;color:#2c3e50;margin:0 0 24px;
+}
+.kp-sec-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border-radius:50%;
+    background:#2c3e50;color:#fff;font-size:15px;font-weight:600;
+    flex-shrink:0;font-family:'Inter',sans-serif;
+}
+.kp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+.kp-stat{
+    background:#fdfcfb;border:1px solid rgba(196,154,108,.2);
+    border-radius:12px;padding:20px 16px;text-align:center;
+    transition:transform .3s, border-color .3s, box-shadow .3s;
+}
+.kp-stat:hover{
+    transform:translateY(-4px);border-color:rgba(196,154,108,.6);
+    box-shadow:0 8px 20px rgba(196,154,108,.1);
+}
+.kp-stat-lb{
+    font-size:11px;color:#7a8a99;text-transform:uppercase;
+    letter-spacing:1.2px;margin-bottom:8px;font-weight:600;
+}
+.kp-stat-vl{
+    font-size:28px;font-weight:700;color:#c49a6c;
+    font-variant-numeric:tabular-nums;line-height:1;
+}
+.kp-stat-vl small{font-size:14px;color:#7a8a99;font-weight:500;margin-left:2px}
+
+.kp-table{width:100%;border-collapse:collapse;font-size:14px}
+.kp-table th{
+    text-align:left;padding:14px 16px;font-size:11px;color:#7a8a99;
+    text-transform:uppercase;letter-spacing:1px;
+    border-bottom:1px solid rgba(196,154,108,.2);font-weight:600;
+}
+.kp-table td{
+    padding:14px 16px;border-bottom:1px solid rgba(196,154,108,.1);
+    color:#2c3e50;
+}
+.kp-table tr:last-child td{border-bottom:none}
+.kp-table td.qty{
+    text-align:right;font-weight:700;color:#c49a6c;
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.kp-scheme-2d{
+    background:#fdfcfb;border-radius:12px;padding:16px;
+    overflow:hidden;border:1px solid rgba(196,154,108,.15);
+}
+.kp-scheme-2d svg{width:100%;height:auto;display:block;border-radius:8px}
+.kp-3d{
+    width:100%;aspect-ratio:16/9;background:#f0ece6;
+    border-radius:12px;overflow:hidden;position:relative;
+    border:1px solid rgba(196,154,108,.2);
+}
+.kp-3d canvas{display:block;width:100%;height:100%}
+.kp-3d-loading{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    color:#c49a6c;font-size:14px;text-align:center;padding:20px;
+    font-family:'Inter',sans-serif;
+}
+.kp-cut-row{
+    display:flex;gap:12px;align-items:center;padding:10px 0;
+    border-bottom:1px solid rgba(196,154,108,.1);font-size:12.5px;
+}
+.kp-cut-row:last-child{border-bottom:none}
+.kp-cut-num{flex-shrink:0;width:32px;color:#7a8a99;font-weight:600;font-variant-numeric:tabular-nums}
+.kp-cut-bar{
+    flex:1;height:22px;background:#f0ece6;border-radius:4px;
+    overflow:hidden;display:flex;border:1px solid rgba(196,154,108,.2);
+}
+.kp-cut-piece{
+    height:100%;background:linear-gradient(180deg,#a8c9a8,#7aa87a);
+    border-right:1px solid rgba(0,0,0,.1);color:#fff;font-size:10px;
+    font-weight:600;display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.kp-cut-piece.waste{background:linear-gradient(180deg,#e0b0a0,#c98a7a);color:#fff}
+.kp-cut-meta{flex-shrink:0;font-family:'Inter',monospace;color:#7a8a99;font-size:12px}
+.kp-total{
+    text-align:center;padding:40px 24px;
+    background:linear-gradient(135deg,rgba(196,154,108,.08),rgba(196,154,108,.03));
+    border:2px solid rgba(196,154,108,.3);border-radius:20px;margin:32px 0;
+}
+.kp-total-lb{
+    font-size:12px;color:#7a8a99;text-transform:uppercase;
+    letter-spacing:2px;margin-bottom:12px;font-weight:600;
+}
+.kp-total-vl{
+    font-family:'Playfair Display',serif;font-size:56px;font-weight:700;
+    color:#c49a6c;line-height:1;font-variant-numeric:tabular-nums;
+}
+.kp-total-vl small{
+    font-size:22px;color:#7a8a99;margin-left:6px;
+    font-family:'Inter',sans-serif;font-weight:500;
+}
+.kp-actions{
+    display:flex;gap:12px;flex-wrap:wrap;
+    justify-content:center;margin:32px 0;
+}
+.kp-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:14px 28px;font-size:15px;font-weight:600;
+    border-radius:12px;cursor:pointer;border:none;
+    font-family:'Inter',sans-serif;text-decoration:none;
+    transition:transform .2s,box-shadow .2s,background .2s;
+}
+.kp-btn:hover{transform:translateY(-2px)}
+.kp-btn.secondary{
+    background:#fff;color:#2c3e50;
+    border:1px solid rgba(196,154,108,.4);
+    box-shadow:0 4px 12px rgba(44,62,80,.04);
+}
+.kp-btn.secondary:hover{background:#fdfcfb;border-color:#c49a6c}
+.kp-btn.danger{
+    background:linear-gradient(135deg,#c49a6c,#a87c4f);color:#fff;
+    box-shadow:0 8px 24px rgba(196,154,108,.25);
+}
+.kp-btn.danger:hover{box-shadow:0 12px 32px rgba(196,154,108,.4)}
+.kp-btn.montage{
+    background:#fff;color:#2c3e50;
+    border:1px solid rgba(44,62,80,.2);
+    box-shadow:0 4px 12px rgba(44,62,80,.04);
+}
+.kp-btn.montage:hover{background:#fdfcfb;border-color:#2c3e50}
+
+.kp-contacts{
+    text-align:center;font-size:13px;color:#7a8a99;
+    margin:16px 0 8px;line-height:1.7;
+}
+.kp-contacts a{color:#c49a6c;text-decoration:none;font-weight:600}
+.kp-contacts a:hover{text-decoration:underline}
+
+.kp-montage-note{
+    text-align:center;font-size:12.5px;color:#7a8a99;
+    margin:8px auto 0;max-width:520px;line-height:1.6;
+    padding:12px 16px;
+    background:rgba(196,154,108,.06);
+    border:1px dashed rgba(196,154,108,.35);
+    border-radius:10px;
+}
+.kp-montage-note b{color:#2c3e50}
+
+.kp-foot{
+    text-align:center;font-size:12px;color:#9aa8b5;
+    padding-top:40px;margin-top:40px;
+    border-top:1px solid rgba(196,154,108,.15);
+}
+.kp-valid{
+    display:inline-block;padding:8px 18px;
+    background:rgba(196,154,108,.1);
+    border:1px solid rgba(196,154,108,.3);
+    border-radius:20px;color:#c49a6c;
+    font-size:12px;font-weight:600;margin:8px 0;
+}
+.kp-empty{text-align:center;padding:80px 20px;color:#9aa8b5}
+.kp-empty h2{color:#c49a6c;margin-bottom:12px;font-family:'Playfair Display',serif}
+
+@media(max-width:640px){
+    .kp-h1{font-size:32px}
+    .kp-total-vl{font-size:42px}
+    .kp-section{padding:24px 20px}
+    .kp-wrap{padding:36px 16px 60px}
+    .kp-stat-vl{font-size:22px}
+    .kp-logo-svg{width:280px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== ЗАСТАВКА С ЛОГОТИПОМ ===================== -->
+<div id="splash">
+    <div class="logo-wrap">
+        <svg id="logoSvg"
+             version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+             viewBox="0 0 316.2 113.2335483871"
+             preserveAspectRatio="xMidYMid meet"
+             xml:space="preserve">
+        <style type="text/css">
+          .st0{fill:#e10004;}
+          .st1{opacity:0.3;}
+          .st2{opacity:0.6;}
+          .title{fill:#000000;}
+          .slogan{fill:#5f6a69;}
+        </style>
+        <g class="sign-anim">
+          <g transform="scale(4.541935483871) translate(0, 0)">
+            <g>
+              <polygon class="st0 tr d0" points="5.1,16.3 15,6.4 13.7,5.2 2.7,16.3"/>
+              <polygon class="st0 bl d5" points="13.1,16.3 15.5,16.3 14.3,15"/>
+              <polygon class="st0 bl d4" points="12.6,13.3 9.6,16.3 12.1,16.3 13.8,14.5"/>
+              <polygon class="st0 bl d3" points="6.1,16.3 8.6,16.3 12.1,12.8 10.8,11.6"/>
+              <polygon class="st0 tr d1" points="0,16.3 1.7,16.3 13.2,4.7 12,3.5 0,15.5"/>
+              <polygon class="st0 tr d2" points="0,7.5 6.3,1.2 5.1,0 0,5.1"/>
+              <polygon class="st0 tr d0" points="0,4.1 2.8,1.2 1.6,0 0,1.6"/>
+              <polygon class="st0 tr d2" points="0,11 9.8,1.2 8.5,0 0,8.5"/>
+              <polygon class="st0 tr d1" points="0,14.5 11.5,3 10.3,1.7 0,12"/>
+              <g class="st1">
+                <polygon class="tr d0" points="5.1,16.3 15,6.4 13.7,5.2 2.7,16.3"/>
+                <polygon class="tr d1" points="0,16.3 1.7,16.3 13.2,4.7 12,3.5 0,15.5"/>
+                <polygon class="tr d2" points="0,11 9.8,1.2 8.5,0 0,8.5"/>
+                <polygon class="tr d1" points="0,14.5 11.5,3 10.3,1.7 0,12"/>
+              </g>
+              <g class="st2">
+                <polygon class="bl d5" points="13.1,16.3 15.5,16.3 14.3,15"/>
+                <polygon class="bl d4" points="12.6,13.3 9.6,16.3 12.1,16.3 13.8,14.5"/>
+                <polygon class="bl d3" points="6.1,16.3 8.6,16.3 12.1,12.8 10.8,11.6"/>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g class="text-anim">
+          <g transform="scale(0.04150390625) translate(2004.6305882353, 1132.8276888046)">
+            <path transform="translate(0,0) rotate(180) scale(-1, 1)" class="title b1" d="M453 213l42 0.00195312h71h40h54v-62v-70c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8 h-22c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v14v504c0 12 2.33301 24 7 36 c2.66699 4.66699 5.5 9.16699 8.5 13.5s6.83301 8.16602 11.5 11.499s9.5 6.33301 14.5 9s11.167 4.66699 18.5 6c7.33301 2 15 3.33301 23 4s16.333 1 25 1h18h27h363h20c9.33301 0 18.166 -0.333008 26.499 -1s16.166 -2 23.499 -4c12 -2.66699 22.667 -7.66699 32 -15 c8.66699 -6.66699 15.334 -15 20.001 -25c2.66699 -5.33301 4.33398 -11 5.00098 -17s1 -12.333 1 -19v-16v-14v-12v-11v-34v-21v-9v-15h-44h-69h-40h-54v38v39h-231v-43v-60v-134v-188h18h171h18h24v35v43z"/>
+            <path transform="translate(740,0) rotate(180) scale(-1, 1)" class="title b2" d="M453 170l-4 526.001h211v-615c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8h-22 c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v599h198l8 -561h18h171h18h24v35z"/>
+            <path transform="translate(1454,0) rotate(180) scale(-1, 1)" class="title b3" d="M19 0l-3.00195 695.999h455c18 0 34.167 -1.5 48.5 -4.5s27.5 -9.5 39.5 -19.5c10.667 -8.66699 16.667 -18.834 18 -30.501s2 -21.5 2 -29.5v-122c0 -6 0.166992 -12.833 0.5 -20.5s-0.333984 -15.167 -2.00098 -22.5s-4.66699 -14.5 -9 -21.5 s-11.166 -13.167 -20.499 -18.5l-43.5 -23.5c-11.667 -6.33301 -23.167 -12.166 -34.5 -17.499c16.667 -6.66699 32.334 -12.5 47.001 -17.5s27.334 -11.833 38.001 -20.5c6 -4 10.667 -9 14 -15s6 -12.5 8 -19.5s3.33301 -14 4 -21s1 -12.833 1 -17.5v-121v-15v-10v-27 c0 -27.333 -9 -47.666 -27 -60.999c-16 -14 -43 -21 -81 -21h-189h-266zM220.998 424.999h44h110v29v53v53h-154v-45v-90zM220.998 134.999h65h88v32c0 12 0.333008 25.333 1 40v102c-16 -0.666992 -37 -0.666992 -63 0h-44h-47v-33v-40v-101z"/>
+            <path transform="translate(2116,0) rotate(180) scale(-1, 1)" class="title b4" d="M16 0v696h230l2 -696h-98h-134z"/>
+            <path transform="translate(2417,0) rotate(180) scale(-1, 1)" class="title b5" d="M453 213l42 0.00195312h71h40h54v-62v-70c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8 h-22c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v14v504c0 12 2.33301 24 7 36 c2.66699 4.66699 5.5 9.16699 8.5 13.5s6.83301 8.16602 11.5 11.499s9.5 6.33301 14.5 9s11.167 4.66699 18.5 6c7.33301 2 15 3.33301 23 4s16.333 1 25 1h18h27h363h20c9.33301 0 18.166 -0.333008 26.499 -1s16.166 -2 23.499 -4c12 -2.66699 22.667 -7.66699 32 -15 c8.66699 -6.66699 15.334 -15 20.001 -25c2.66699 -5.33301 4.33398 -11 5.00098 -17s1 -12.333 1 -19v-16v-14v-12v-11v-34v-21v-9v-15h-44h-69h-40h-54v38v39h-231v-43v-60v-134v-188h18h171h18h24v35v43z"/>
+            <path transform="translate(3157,0) rotate(180) scale(-1, 1)" class="title b6" d="M254 116l-4.00098 -20l-6.5 -33.5c-2.33301 -12.333 -4.5 -24.333 -6.5 -36s-3.66699 -20.5 -5 -26.5h-216v2l204 694h235l204 -694v-2h-216l-8 48.5c-3.33301 19.667 -7.66602 42.167 -12.999 67.5h-168zM283.999 232h106.998l-22.5 100.5l-30.5 139.5 c-3.33301 -13.333 -6.66602 -28.333 -9.99902 -45s-7.66602 -35 -12.999 -55z"/>
+          </g>
+          <g transform="scale(0.016) translate(5200, 4326.0483870968)">
+            <path transform="translate(0,0) rotate(180) scale(-1, 1)" class="slogan" d="M707 337q0 73 -23 103t-79 30q-34 0 -63 -16t-47 -42q1 -31 2 -64.5t1 -68.5v-279h-106v293q0 43 -2.5 76.5t-12 55.5t-27.5 33.5t-49 11.5q-35 0 -64 -14.5t-50 -38.5v-417h-110v416q0 27 -7.5 41t-25.5 14q-8 0 -11.5 -1t-8.5 -1q0 -1 -1 10t-3 25l-4 36q11 5 24.5 8.5 t29.5 3.5q30 0 51.5 -9.5t30.5 -39.5q32 26 73 41t80 15q43 0 82 -14t66 -52q34 29 74.5 48t90.5 19q60 0 97.5 -19.5t59.5 -49t30 -64.5t8 -66v-188q0 -28 1 -45.5t5 -28t11 -14.5t18 -4q7 0 15 1t19 3l11 -80q-20 -6 -39 -9.5t-36 -3.5q-26 0 -46.5 8.5t-34.5 28.5 t-22 52.5t-8 79.5v176v0z"/>
+            <path transform="translate(908,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>
+            <path transform="translate(1453,0) rotate(180) scale(-1, 1)" class="slogan" d="M340 685v85h184v-643q0 -28 8 -39t24 -11q8 0 18 1t22 6l9 -68l-34 -12q-20 -7 -41 -7q-27 0 -45 7t-33 24q-27 -15 -66 -27t-108 -12q-39 0 -79.5 8.5t-72.5 34.5t-52.5 73.5t-20.5 125.5v58q0 83 17.5 135.5t48 82.5t71 41t85.5 11q59 0 92 -12t46 -23v161h-73z M413 439q-19 12 -50 21.5t-66 9.5q-30 0 -55 -7.5t-43 -29t-27.5 -60t-9.5 -100.5q0 -63 8.5 -102t25 -60.5t41 -28.5t56.5 -7q48 0 74.5 9.5t45.5 19.5v335z"/>
+            <path transform="translate(2077,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>
+            <path transform="translate(2642,0) rotate(180) scale(-1, 1)" class="slogan" d="M426 427l-77 -6l-5 41q-19 0 -42 -2.5t-43 -10t-33.5 -21t-13.5 -35.5v-393h-111v444l-66 -5l-3 78q30 11 64.5 18t71.5 12v-52q26 29 61.5 46.5t91.5 17.5q24 0 50 -2.5t55 -8.5v-121z"/>
+            <path transform="translate(3092,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>
+            <path transform="translate(4012,0) rotate(180) scale(-1, 1)" class="slogan" d="M389 391l-3 61q-20 11 -48 14.5t-51 3.5q-21 0 -43.5 -5t-41.5 -21.5t-31.5 -48t-12.5 -83.5v-77q0 -54 12.5 -85t31 -47t40.5 -20.5t42 -4.5q59 0 100.5 8t77.5 20l26 -82q-37 -18 -92.5 -26t-112.5 -8q-45 0 -87 8t-74.5 32.5t-52.5 70t-20 121.5v102q0 75 21 121 t55 71.5t76.5 34t84.5 8.5q33 0 57.5 -1.5t45.5 -4.5t42 -7.5t47 -10.5l-13 -144h-76z"/>
+            <path transform="translate(4538,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>
+            <path transform="translate(5103,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>
+            <path transform="translate(5419,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>
+            <path transform="translate(5699,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>
+            <path transform="translate(6015,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>
+            <path transform="translate(6650,0) rotate(180) scale(-1, 1)" class="slogan" d="M263 -122q24 0 46.5 5t40 17.5t28.5 35.5t13 59q2 5 3 10t1 10q-13 -8 -46 -17t-90 -9q-41 0 -80.5 9.5t-71 35.5t-51 72t-19.5 120v84q0 77 19.5 125.5t51 76.5t72 38t81.5 10q35 0 61.5 -4t46.5 -10t35 -14.5t28 -17.5q14 21 33 29.5t47 8.5q17 0 34.5 -5.5t40.5 -14.5 l-9 -68q-12 4 -22 5.5t-18 1.5q-16 0 -24 -12.5t-8 -41.5v-382q0 -85 -24 -134.5t-60 -75t-78 -32.5t-78 -7q-62 0 -111.5 14t-84.5 52l32 63q45 -20 82 -28.5t79 -8.5zM395 436q-20 14 -50.5 24.5t-67.5 10.5q-27 0 -51 -7t-41.5 -26.5t-28 -54.5t-10.5 -91v-42 q0 -56 11 -89t30 -51t43 -23.5t51 -5.5q44 0 70 5.5t44 14.5v335z"/>
+            <path transform="translate(7538,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>
+            <path transform="translate(8101,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>
+            <path transform="translate(8646,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>
+            <path transform="translate(8926,0) rotate(180) scale(-1, 1)" class="slogan" d="M545 550v-415q0 -29 9 -44.5t27 -15.5q14 0 33 10l16 -70q-17 -8 -41.5 -16t-47.5 -8q-26 0 -49 12t-27 38q-11 -16 -29.5 -26t-41 -15t-47 -7t-46.5 -2q-39 0 -77 10t-67.5 36t-48 71.5t-18.5 116.5v240h-64v86h175v-304q0 -51 6 -83t19 -50t34 -24.5t51 -6.5 q20 0 41.5 4.5t39.5 16t30 31t12 48.5v368z"/>
+            <path transform="translate(9562,0) rotate(180) scale(-1, 1)" class="slogan" d="M222 721v-168h116v-89h-117v-334q0 -52 34 -52q15 0 32 3t43 8l11 -79q-23 -5 -53.5 -11.5t-61.5 -6.5q-60 0 -87.5 47t-27.5 127v298h-89l8 89h70q9 20 15 56t6 102z"/>
+            <path transform="translate(9940,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>
+            <path transform="translate(10256,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>
+            <path transform="translate(10801,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>
+            <path transform="translate(11436,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>
+          </g>
+        </g>
+        </svg>
+    </div>
+</div>
+
+<!-- ===================== ФОН КП ===================== -->
+<div class="kp-bg">
+    <div class="kp-bg-rail s1"></div>
+    <div class="kp-bg-rail s2"></div>
+    <div class="kp-bg-rail s3"></div>
+    <div class="kp-bg-rail s4"></div>
+    <div class="kp-bg-rail s5"></div>
+    <div class="kp-bg-rail s6"></div>
+    <div class="kp-bg-rail s7"></div>
+    <div class="kp-bg-rail s8"></div>
+</div>
+
+<div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
+
+<!-- ===================== ЛОГИКА ===================== -->
+<script>
+// ===== ТЕСТОВЫЕ ДАННЫЕ (реальный payload от калькулятора) =====
+const TEST_PAYLOAD = "eyJ2IjoxLCJMMF9pbiI6NTQwMCwiV19pbiI6NDIwMCwiYXJlYSI6MjIuNjgsImNvbG9yIjoiRGVudmVyIiwicmFpbFNwZWMiOiI1MC81MCIsInByaWNlIjoyMTU0LjYsImN1cnJlbmN5IjoiQllOIiwiY29sb3Jfa2V5IjoiZGVudmVyIiwibWFuYWdlciI6ItCc0LXQvdC10LTQttC10YAgQ1VCSUNBIiwicGhvbmUiOiIrMzc1ICgyOSkgMDAwLTAwLTAwIiwidmFsaWQiOiLQv9C+INGD0LzQvtC70YfQsNC90LjRjiIsInAiOnsicmFpbFciOjUwLCJyYWlsSCI6NTAsImdhcCI6NDAsImNvbG9yIjoiZGVudmVyIiwiY2FwcyI6ZmFsc2UsImFuZ2xlIjpmYWxzZX0sInIiOjAsInJvd3MiOlt7ImxhYmVsIjoi0KDQtdC50LrQsCBDdWJpY2EgNTAvNTAgRGVudmVyIDQwMDAg0LzQvCIsInF0eSI6NH0seyJsYWJlbCI6ItCg0LXQudC60LAgQ3ViaWNhIDUwLzUwIERlbnZlciAzMDAwINC80LwiLCJxdHkiOjJ9LHsibGFiZWwiOiLQoNC10LnQutCwIEN1YmljYSA1MC81MCBEZW52ZXIgMzkwMCDQvNC8IiwicXR5IjoyfSx7ImxhYmVsIjoi0KDQtdC50LrQsCBDdWJpY2EgNTAvNTAgRGVudmVyIDI1MDAg0LzQvCIsInF0eSI6MX0seyJsYWJlbCI6ItCh0YLRgNC40L3Qs9C10YAgNTAvOTAgMzAwMCDQvNC8IiwicXR5IjoxMn0seyJsYWJlbCI6ItCf0L7QtNCy0LXRgSAo0YjQv9C40LvRjNC60LApIiwicXR5Ijo0OH0seyJsYWJlbCI6ItCQ0L3QutC10YAiLCJxdHkiOjQ4fV0sIm1lcmdlSW5mbyI6bnVsbH0=";
+
+// ====================== ЗАПУСК ЗАСТАВКИ ======================
+(function(){
+    var svg = document.getElementById('logoSvg');
+    var splash = document.getElementById('splash');
+
+    function play(){
+        svg.classList.remove('play');
+        void svg.getBoundingClientRect().width;
+        svg.classList.add('play');
+        setTimeout(function(){
+            splash.classList.add('hide');
+            setTimeout(function(){ splash.style.display = 'none'; }, 900);
+        }, 5200);
+    }
+
+    window.addEventListener('load', function(){ setTimeout(play, 10); });
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(play, 10);
+    }
+})();
+
+// ====================== КП ЛОГИКА ======================
+const WOOD_PROC={denver:{base:'#c9a166',dark:'#8a6b3a',opts:{grainDensity:170,warpAmp:3}},wellington:{base:'#9a8470',dark:'#5c4a38',opts:{grainDensity:170,warpAmp:3}},tokyo:{base:'#6a4530',dark:'#3a2418',opts:{grainDensity:170,warpAmp:3}},toronto:{base:'#5c4636',dark:'#241812',opts:{grainDensity:240,warpAmp:1.5,grainContrast:1.3,lightnessBands:40}},vancouver:{base:'#6a4a34',dark:'#2a1810',opts:{grainDensity:210,warpAmp:4.5,grainContrast:1.5,lightnessBands:55}},rio:{base:'#d4a05a',dark:'#8a5a20',opts:{grainDensity:140,warpAmp:2,grainContrast:0.8,lightnessBands:70}},stockholm:{base:'#9a7a56',dark:'#4a3020',opts:{grainDensity:180,warpAmp:2.5,grainContrast:1.1,lightnessBands:65}},sydney:{base:'#dbb070',dark:'#9a6830',opts:{grainDensity:120,warpAmp:3.5,grainContrast:1.4,lightnessBands:80}}};
+const RAIL_WALL_T=1.5,RAIL_FLANGE=5.0;const CARRIER_STOCK=3000,CARRIER_STEP_MAX=1000,CARRIER_W=30,CARRIER_H=20;const CARRIER_XSHIFT=50;const STRINGER_WALL_EDGE=100;const RAIL_END_OVERHANG_MAX=300;const HANGER_WALL_EDGE=100,HANGER_STEP_MAX=1000;const HANGER_ROD=300,MAX_RAILS=200;const RAIL_RULE_MIN_LEN=300,RAIL_ABSOLUTE_MIN_LEN=50;
+function b64dec(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function polyBBox(poly){let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;for(const p of poly){if(p[0]<xmin)xmin=p[0];if(p[0]>xmax)xmax=p[0];if(p[1]<ymin)ymin=p[1];if(p[1]>ymax)ymax=p[1];}return{xmin,ymin,xmax,ymax,W:xmax-xmin,H:ymax-ymin};}
+function polyArea(poly){let s=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s)/2;}
+function polyPerimeter(poly){let p=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];p+=Math.hypot(b[0]-a[0],b[1]-a[1]);}return p;}
+function pointInPoly(poly,px,py){let inside=false,n=poly.length;for(let i=0,j=n-1;i<n;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const inter=((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi);if(inter)inside=!inside;}return inside;}
+function clipSegToPoly(poly,x1,y1,x2,y2){const n=poly.length;const dx=x2-x1,dy=y2-y1;const ts=[0,1];for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];const ex=b[0]-a[0],ey=b[1]-a[1];const denom=dx*ey-dy*ex;if(Math.abs(denom)<1e-9)continue;const t=((a[0]-x1)*ey-(a[1]-y1)*ex)/denom;if(t>1e-6&&t<1-1e-6)ts.push(t);}ts.sort((p,q)=>p-q);const uniq=[ts[0]];for(let i=1;i<ts.length;i++)if(ts[i]-uniq[uniq.length-1]>1e-6)uniq.push(ts[i]);const out=[];for(let i=0;i<uniq.length-1;i++){const t0=uniq[i],t1=uniq[i+1];if(t1-t0<1e-6)continue;const tm=(t0+t1)/2;const mx=x1+tm*dx,my=y1+tm*dy;if(pointInPoly(poly,mx,my))out.push([x1+t0*dx,y1+t0*dy,x1+t1*dx,y1+t1*dy]);}return out;}
+function clipSegToRect(x0,y0,x1,y1,rx0,ry0,rx1,ry1){let t0=0,t1=1;const dx=x1-x0,dy=y1-y0;const p=[-dx,dx,-dy,dy];const q=[x0-rx0,rx1-x0,y0-ry0,ry1-y0];for(let i=0;i<4;i++){if(Math.abs(p[i])<1e-9){if(q[i]<0)return null;}else{const t=q[i]/p[i];if(p[i]<0){if(t>t1)return null;if(t>t0)t0=t;}else{if(t<t0)return null;if(t<t1)t1=t;}}}return[x0+t0*dx,y0+t0*dy,x0+t1*dx,y0+t1*dy];}
+function mergeCollinearSegments(segs){if(!segs||segs.length<=1)return segs||[];let refIdx=0,refLen=0;for(let i=0;i<segs.length;i++){const L=Math.hypot(segs[i][2]-segs[i][0],segs[i][3]-segs[i][1]);if(L>refLen){refLen=L;refIdx=i;}}if(refLen<1e-6)return segs;const rdx=segs[refIdx][2]-segs[refIdx][0],rdy=segs[refIdx][3]-segs[refIdx][1];const ux=rdx/refLen,uy=rdy/refLen,px=-uy,py=ux;const items=segs.map(s=>{const t0=s[0]*ux+s[1]*uy,t1=s[2]*ux+s[3]*uy;const d0=s[0]*px+s[1]*py,d1=s[2]*px+s[3]*py;return{tMin:Math.min(t0,t1),tMax:Math.max(t0,t1),dPerp:(d0+d1)/2};});items.sort((a,b)=>a.tMin-b.tMin);const merged=[];let cur=items[0];for(let i=1;i<items.length;i++){const next=items[i];const cL=cur.tMax-cur.tMin,nL=next.tMax-next.tMin,tot=cL+nL;const avg=tot>0?(cur.dPerp*cL+next.dPerp*nL)/tot:cur.dPerp;if(Math.abs(next.dPerp-cur.dPerp)<2&&next.tMin<=cur.tMax+2){cur={tMin:Math.min(cur.tMin,next.tMin),tMax:Math.max(cur.tMax,next.tMax),dPerp:avg};}else{merged.push(cur);cur=next;}}merged.push(cur);return merged.map(m=>[m.tMin*ux+m.dPerp*px,m.tMin*uy+m.dPerp*py,m.tMax*ux+m.dPerp*px,m.tMax*uy+m.dPerp*py]);}
+function computeWallAlignedPositions(total,edgeDist,maxStep){if(total<=0)return[];if(total<=2*edgeDist)return[total/3,2*total/3];const span=total-2*edgeDist;const nGaps=Math.max(1,Math.ceil(span/maxStep));const step=span/nGaps;const positions=[];for(let i=0;i<=nGaps;i++)positions.push(edgeDist+i*step);return positions;}
+function computeRailSegments(L){L=Math.ceil(L/50)*50;if(L<=0)return{pieces:[],joints:0};if(L<=4000)return{pieces:[L],joints:0};if(L%4000===0){const n=L/4000;return{pieces:new Array(n).fill(4000),joints:n-1};}if(L%3000===0){const n=L/3000;return{pieces:new Array(n).fill(3000),joints:n-1};}let best=null;for(let a=Math.floor(L/4000);a>=0;a--){const rem=L-a*4000;if(rem<=0)continue;if(rem%3000===0){const b=rem/3000;const t=a+b;if(best===null||t<best.total)best={a,b,total:t};}}if(best!==null){if(best.total===2&&best.a!==best.b){const half=Math.ceil(L/2/50)*50;return{pieces:[half,half],joints:1};}const pieces=[];for(let i=0;i<best.a;i++)pieces.push(4000);for(let i=0;i<best.b;i++)pieces.push(3000);return{pieces,joints:pieces.length-1};}const n4=Math.floor(L/4000),r4=L-n4*4000,n3=Math.floor(L/3000),r3=L-n3*3000;const ratio4=r4/4000,ratio3=r3/3000;let pieces;if(ratio4>=ratio3){pieces=new Array(n4).fill(4000);if(r4>0)pieces.push(r4);}else{pieces=new Array(n3).fill(3000);if(r3>0)pieces.push(r3);}if(pieces.length===2&&pieces[0]!==pieces[1]){const half=Math.ceil(L/2/50)*50;return{pieces:[half,half],joints:1};}return{pieces,joints:pieces.length-1};}
+function computeStringerSegments(W,pitch){W=Math.ceil(W/50)*50;if(W<=0)return{pieces:[],starts:[],overlap:0};if(W<=CARRIER_STOCK)return{pieces:[W],starts:[0],overlap:0};let overlap=Math.ceil((2*pitch)/10)*10;if(overlap<50)overlap=50;const maxOv=CARRIER_STOCK*0.8;if(overlap>maxOv)overlap=maxOv;const step=CARRIER_STOCK-overlap;if(step<200)return{pieces:[W],starts:[0],overlap:0};const pieces=[],starts=[];let start=0;while(true){const remain=W-start;if(remain<=CARRIER_STOCK+0.5){let lastLen=Math.max(50,Math.ceil(remain/50)*50);pieces.push(lastLen);starts.push(start);break;}pieces.push(CARRIER_STOCK);starts.push(start);start+=step;}if(pieces.length>=2){const lastLen=pieces[pieces.length-1];if(lastLen<pitch){const deficit=pitch-lastLen;pieces[pieces.length-2]-=deficit;pieces[pieces.length-1]=pitch;}}return{pieces,starts,overlap};}
+function makeWoodCanvas(base,dark,opts){opts=opts||{};const W=256,H=256;const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');const gd=opts.grainDensity||170,gc=opts.grainContrast||1,wa=opts.warpAmp||3,lb=opts.lightnessBands||70;const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,base);g.addColorStop(1,dark);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<gd;i++){const x=Math.random()*W;ctx.strokeStyle='rgba(0,0,0,'+((0.04+Math.random()*0.09)*gc)+')';ctx.lineWidth=0.4+Math.random()*1.3;ctx.beginPath();let y=0,xx=x;ctx.moveTo(xx,y);while(y<H){y+=6+Math.random()*10;xx+=(Math.random()-0.5)*wa;ctx.lineTo(xx,y);}ctx.stroke();}for(let j=0;j<lb;j++){const x2=Math.random()*W;ctx.strokeStyle='rgba(255,255,255,'+((0.02+Math.random()*0.05)*gc)+')';ctx.lineWidth=0.3+Math.random()*1.1;ctx.beginPath();let y2=0,xx2=x2;ctx.moveTo(xx2,y2);while(y2<H){y2+=8+Math.random()*12;xx2+=(Math.random()-0.5)*(wa*0.66);ctx.lineTo(xx2,y2);}ctx.stroke();}return c;}
+function makeWoodTexture(base,dark,opts){const c=makeWoodCanvas(base,dark,opts);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;t.anisotropy=4;return t;}
+function makeRailAsBoxes(railW,railH,wallT,flange,length,material){const g=new THREE.Group();const halfW=railW/2;let f=flange;const maxF=halfW-wallT*1.2;if(f>maxF)f=maxF;const bottom=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,railW-2*wallT),material);bottom.position.set(0,wallT/2,0);g.add(bottom);const leftWall=new THREE.Mesh(new THREE.BoxGeometry(length,railH,wallT),material);leftWall.position.set(0,railH/2,-halfW+wallT/2);g.add(leftWall);const rightWall=new THREE.Mesh(new THREE.BoxGeometry(length,railH,wallT),material);rightWall.position.set(0,railH/2,halfW-wallT/2);g.add(rightWall);const leftFlange=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,f),material);leftFlange.position.set(0,railH-wallT/2,-halfW+f/2);g.add(leftFlange);const rightFlange=new THREE.Mesh(new THREE.BoxGeometry(length,wallT,f),material);rightFlange.position.set(0,railH-wallT/2,halfW-f/2);g.add(rightFlange);return g;}
+
+function recalcLayout(kp){
+const{railW,railH,gap,caps,angle}=kp.p;
+const L=kp.L_in,W=kp.W_in;
+const polygon=kp.polygon?kp.polygon.map(p=>[p[0],p[1]]):null;
+const rotationDeg=kp.r||0;const rotRad=rotationDeg*Math.PI/180;const cosR=Math.cos(rotRad),sinR=Math.sin(rotRad);const absC=Math.abs(cosR),absS=Math.abs(sinR);
+const pitch=railW+gap;const roomCx=L/2,roomCy=W/2;
+function gridToWorld(gx,gy){return[roomCx+gx*cosR-gy*sinR,roomCy+gx*sinR+gy*cosR];}
+function worldToGrid(wx,wy){const dx=wx-roomCx,dy=wy-roomCy;return[dx*cosR+dy*sinR,-dx*sinR+dy*cosR];}
+function clipAny(x0,y0,x1,y1){if(polygon)return clipSegToPoly(polygon,x0,y0,x1,y1);const c=clipSegToRect(x0,y0,x1,y1,0,0,L,W);return c?[c]:[];}
+const gridXExtent=L*absC+W*absS;const gridYExtent=L*absS+W*absC;const gxHalf=gridXExtent/2+pitch*2;const gyHalf=gridYExtent/2+pitch*2;
+const perRailSegments=[];
+let nRailsLines=Math.max(1,Math.floor((gridYExtent+gap)/pitch));if(nRailsLines>MAX_RAILS)nRailsLines=MAX_RAILS;
+const totalRailsSpan=nRailsLines*railW+(nRailsLines-1)*gap;const railEdgeOffset=(gridYExtent-totalRailsSpan)/2;
+for(let i=0;i<nRailsLines;i++){
+const gy=-gridYExtent/2+railEdgeOffset+railW/2+i*pitch;const[wx0,wy0]=gridToWorld(-gxHalf,gy);const[wx1,wy1]=gridToWorld(+gxHalf,gy);
+const mergedSegs=mergeCollinearSegments(clipAny(wx0,wy0,wx1,wy1));
+for(const c of mergedSegs){const dxs=c[2]-c[0],dys=c[3]-c[1];const len=Math.hypot(dxs,dys);if(len<50)continue;const ux=dxs/len,uy=dys/len;const pat=computeRailSegments(len);perRailSegments.push({x0:c[0],y0:c[1],x1:c[2],y1:c[3],len,ux,uy,pieces:pat.pieces});}
+}
+const gxMinAll=-gridXExtent/2+STRINGER_WALL_EDGE;const gxMaxAll=+gridXExtent/2-STRINGER_WALL_EDGE;
+let stringerXsGrid=computeWallAlignedPositions(gridXExtent,STRINGER_WALL_EDGE,CARRIER_STEP_MAX).map(p=>p-gridXExtent/2);
+const railGridRanges=perRailSegments.map(r=>{const gx0=worldToGrid(r.x0,r.y0)[0];const gx1=worldToGrid(r.x1,r.y1)[0];return{len:r.len,min:Math.min(gx0,gx1),max:Math.max(gx0,gx1)};});
+const MIN_STEP_BETWEEN=200;
+function addStringerToSet(xSet,x){if(x<gxMinAll||x>gxMaxAll)return false;for(const ex of xSet)if(Math.abs(ex-x)<MIN_STEP_BETWEEN)return false;xSet.add(x);return true;}
+function passEnsureMinStringers(){let changed=false;const xSet=new Set(stringerXsGrid);for(const r of railGridRanges){if(r.len<RAIL_ABSOLUTE_MIN_LEN)continue;const needMin=(r.len>=RAIL_RULE_MIN_LEN)?2:1;const inside=[...xSet].filter(x=>x>=r.min-30&&x<=r.max+30).sort((a,b)=>a-b);if(inside.length>=needMin)continue;const center=(r.min+r.max)/2;if(inside.length===0){if(addStringerToSet(xSet,center))changed=true;else{if(addStringerToSet(xSet,r.min+(r.max-r.min)/3))changed=true;if(addStringerToSet(xSet,r.min+2*(r.max-r.min)/3))changed=true;}}else if(inside.length===1&&needMin===2){const ex=inside[0];const cand=2*center-ex;if(cand>=r.min+50&&cand<=r.max-50){if(addStringerToSet(xSet,cand))changed=true;}else{if(ex<center){if(addStringerToSet(xSet,r.max-100))changed=true;}else{if(addStringerToSet(xSet,r.min+100))changed=true;}}}}stringerXsGrid=[...xSet].sort((a,b)=>a-b);return changed;}
+function passEnsureEndSupport(){let changed=false;const xSet=new Set(stringerXsGrid);for(const r of railGridRanges){if(r.len<200)continue;const inside=[...xSet].filter(x=>x>=r.min-30&&x<=r.max+30).sort((a,b)=>a-b);if(inside.length===0)continue;const first=inside[0],last=inside[inside.length-1];if(first-r.min>RAIL_END_OVERHANG_MAX){const target=r.min+Math.max(100,RAIL_END_OVERHANG_MAX-50);if(addStringerToSet(xSet,target))changed=true;}if(r.max-last>RAIL_END_OVERHANG_MAX){const target=r.max-Math.max(100,RAIL_END_OVERHANG_MAX-50);if(addStringerToSet(xSet,target))changed=true;}}stringerXsGrid=[...xSet].sort((a,b)=>a-b);return changed;}
+for(let iter=0;iter<8;iter++){let changed=false;if(passEnsureMinStringers())changed=true;if(passEnsureEndSupport())changed=true;if(!changed)break;}
+const perStringerSegments=[];
+for(let j=0;j<stringerXsGrid.length;j++){
+const gx=stringerXsGrid[j];const[wx0,wy0]=gridToWorld(gx,-gyHalf);const[wx1,wy1]=gridToWorld(gx,+gyHalf);
+const mergedSegs=mergeCollinearSegments(clipAny(wx0,wy0,wx1,wy1));const strSegList=[];const hangers=[];
+for(const c of mergedSegs){const dxs=c[2]-c[0],dys=c[3]-c[1];const len=Math.hypot(dxs,dys);if(len<50)continue;const ux=dxs/len,uy=dys/len;const stRes=computeStringerSegments(len,pitch);const pieces=stRes.pieces,starts=stRes.starts;
+for(let k=0;k<pieces.length;k++){const t0=starts[k]/len,t1=(starts[k]+pieces[k])/len;const sh=((j+k)%2)*CARRIER_XSHIFT;const ax=c[0]+dxs*t0+cosR*sh,ay=c[1]+dys*t0+sinR*sh;const bx=c[0]+dxs*t1+cosR*sh,by=c[1]+dys*t1+sinR*sh;const mergedSub=mergeCollinearSegments(clipAny(ax,ay,bx,by));
+for(const sc of mergedSub){const slen=Math.hypot(sc[2]-sc[0],sc[3]-sc[1]);if(slen<50)continue;const sux=(sc[2]-sc[0])/slen,suy=(sc[3]-sc[1])/slen;strSegList.push({x0:sc[0],y0:sc[1],x1:sc[2],y1:sc[3],len:slen,ux:sux,uy:suy,xShift:sh});
+const gya=worldToGrid(sc[0],sc[1])[1];const gyb=worldToGrid(sc[2],sc[3])[1];const gyMin=Math.min(gya,gyb),gyMax=Math.max(gya,gyb);const gyRange=gyMax-gyMin;
+if(gyRange>50){const gyList=computeWallAlignedPositions(gyRange,HANGER_WALL_EDGE,HANGER_STEP_MAX);for(const gy of gyList){const gxHanger=gx+sh;const wpt=gridToWorld(gxHanger,gyMin+gy);let inside=true;if(polygon)inside=pointInPoly(polygon,wpt[0],wpt[1]);else inside=wpt[0]>=0&&wpt[0]<=L&&wpt[1]>=0&&wpt[1]<=W;if(!inside)continue;hangers.push({x:wpt[0],y:wpt[1]});}}}}
+}
+perStringerSegments.push({x:gx,origX:gx,segs:strSegList,hangers});
+}
+return{L_in:L,W_in:W,railW,railH,gap,pitch,rotationDeg,perRailSegments,perStringerSegments,polygon,caps};
+}
+
+// ========== 2D-схема с размерами сторон ==========
+function kpBuild2DScheme(kp,layout){
+const{L_in,W_in,polygon}=layout;
+const width=800,height=520,padding=60;
+const s=Math.min((width-2*padding)/L_in,(height-2*padding)/W_in);
+const dw=L_in*s,dh=W_in*s;
+const ox=(width-dw)/2,oy=(height-dh)/2;
+let svg='<svg viewBox="0 0 '+width+' '+height+'" xmlns="http://www.w3.org/2000/svg" style="background:#fdfcfb;border-radius:8px">';
+svg+='<defs><clipPath id="kp-clip">';
+if(polygon){svg+='<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'"/>';}
+else{svg+='<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';}
+svg+='</clipPath></defs>';
+svg+='<g clip-path="url(#kp-clip)">';
+for(const rseg of layout.perRailSegments){const sx0=ox+rseg.x0*s,sy0=oy+rseg.y0*s;const sx1=ox+rseg.x1*s,sy1=oy+rseg.y1*s;svg+='<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#c49a6c" stroke-width="'+Math.max(2,layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';}
+for(const sseg of layout.perStringerSegments){for(const sg of sseg.segs){const sx0=ox+sg.x0*s,sy0=oy+sg.y0*s;const sx1=ox+sg.x1*s,sy1=oy+sg.y1*s;svg+='<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="#8fa0b8" stroke-width="2" stroke-linecap="round"/>';}}
+svg+='</g>';
+
+if(polygon){
+    svg+='<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+    const cxP=polygon.reduce((sum,p)=>sum+p[0],0)/polygon.length;
+    const cyP=polygon.reduce((sum,p)=>sum+p[1],0)/polygon.length;
+    const cxScr=ox+cxP*s,cyScr=oy+cyP*s;
+    for(let i=0;i<polygon.length;i++){
+        const a=polygon[i],b=polygon[(i+1)%polygon.length];
+        const len=Math.round(Math.hypot(b[0]-a[0],b[1]-a[1]));
+        const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+        const px=ox+mx*s,py=oy+my*s;
+        let ang=Math.atan2((b[1]-a[1])*s,(b[0]-a[0])*s)*180/Math.PI;
+        if(ang>90)ang-=180;
+        if(ang<-90)ang+=180;
+        const nx=px-cxScr,ny=py-cyScr;
+        const nl=Math.hypot(nx,ny)||1;
+        const OFF=22;
+        const tx=px+nx/nl*OFF,ty=py+ny/nl*OFF;
+        svg+='<g transform="translate('+tx.toFixed(1)+' '+ty.toFixed(1)+') rotate('+ang.toFixed(2)+')"><text text-anchor="middle" font-size="13" font-weight="800" fill="#c00000" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round;">'+len+' мм</text></g>';
+    }
+}else{
+    svg+='<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+    svg+='<text x="'+(ox+dw/2)+'" y="'+(oy-16)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c00000" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round;">'+L_in+' мм</text>';
+    svg+='<text x="'+(ox-16)+'" y="'+(oy+dh/2)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c00000" transform="rotate(-90 '+(ox-16)+' '+(oy+dh/2)+')" style="paint-order:stroke;stroke:#ffffff;stroke-width:5px;stroke-linejoin:round;">'+W_in+' мм</text>';
+}
+svg+='</svg>';
+return svg;
+}
+
+// ========== 3D-сцена с ожиданием загрузки Three.js ==========
+function kpInit3D(kp,layout,container){
+    var attempts=0;
+    function tryInit(){
+        attempts++;
+        if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined') {
+            if(attempts < 40){
+                setTimeout(tryInit, 100);
+            }else{
+                console.error('Three.js не загрузился за 4 секунды');
+                container.innerHTML='<div class="kp-3d-loading">Ошибка: библиотека 3D не загружена.<br>Проверьте интернет и обновите страницу.</div>';
+            }
+            return;
+        }
+        try{
+            const canvas=document.createElement('canvas');
+            canvas.style.display='block';canvas.style.width='100%';canvas.style.height='100%';
+            container.innerHTML='';container.appendChild(canvas);
+            const W=container.clientWidth||640,H=container.clientHeight||360;
+            const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+            renderer.setSize(W,H,false);
+            const scene=new THREE.Scene();
+            const camera=new THREE.PerspectiveCamera(40,W/H,0.1,200);
+            const Lm=layout.L_in/1000,Wm=layout.W_in/1000;
+            const railHm=layout.railH/1000;
+            const s=Math.max(Lm,Wm,1);
+            camera.position.set(Lm*0.9,s*0.7,Wm*1.2);
+            camera.lookAt(0,railHm/2,0);
+            const controls=new THREE.OrbitControls(camera,canvas);
+            controls.enableDamping=true;controls.dampingFactor=0.06;
+            controls.autoRotate=true;controls.autoRotateSpeed=1.2;
+            controls.enableZoom=true;controls.enablePan=false;
+            controls.target.set(0,railHm/2,0);
+            scene.add(new THREE.AmbientLight(0xffffff,0.8));
+            const dl1=new THREE.DirectionalLight(0xffd7a3,1.0);dl1.position.set(5,10,5);scene.add(dl1);
+            const dl2=new THREE.DirectionalLight(0xffd7a3,0.6);dl2.position.set(-6,4,-4);scene.add(dl2);
+            const dl3=new THREE.DirectionalLight(0xffffff,0.5);dl3.position.set(0,-4,6);scene.add(dl3);
+            const pivot=new THREE.Group();scene.add(pivot);
+            const xOff=-Lm/2,zOff=-Wm/2;
+            let mRailMat;
+            const woodName=kp.p.color;
+            if(WOOD_PROC[woodName]){const p=WOOD_PROC[woodName];mRailMat=new THREE.MeshLambertMaterial({map:makeWoodTexture(p.base,p.dark,p.opts),side:THREE.DoubleSide});}
+            else{mRailMat=new THREE.MeshLambertMaterial({color:0xc9a166,side:THREE.DoubleSide});}
+            const mCarrier=new THREE.MeshLambertMaterial({color:0xd0c8be});
+            const railWm=layout.railW/1000;
+            for(const rseg of layout.perRailSegments){
+                const lenM=rseg.len/1000;
+                if(lenM<0.02)continue;
+                const ux=(rseg.x1-rseg.x0)/rseg.len,uz=(rseg.y1-rseg.y0)/rseg.len;
+                const railAngle=-Math.atan2(uz,ux);
+                let cumM=0;
+                for(let i=0;i<rseg.pieces.length;i++){
+                    let piece=rseg.pieces[i];
+                    const remaining=rseg.len-cumM*1000;
+                    if(piece>remaining)piece=remaining;
+                    const pieceM=piece/1000;
+                    const cxm=rseg.x0/1000+ux*(cumM+pieceM/2)+xOff;
+                    const czm=rseg.y0/1000+uz*(cumM+pieceM/2)+zOff;
+                    const grp=makeRailAsBoxes(railWm,railHm,1.5/1000,5/1000,pieceM,mRailMat);
+                    grp.position.set(cxm,0,czm);
+                    grp.rotation.y=railAngle;
+                    pivot.add(grp);
+                    cumM+=pieceM;
+                }
+            }
+            const carrierWm=CARRIER_W/1000,carrierHm=CARRIER_H/1000;
+            for(const sseg of layout.perStringerSegments){
+                for(const sg of sseg.segs){
+                    const lenM=sg.len/1000;
+                    if(lenM<0.02)continue;
+                    const cxM=(sg.x0+sg.x1)/2/1000+xOff;
+                    const czM=(sg.y0+sg.y1)/2/1000+zOff;
+                    const ux=(sg.x1-sg.x0)/sg.len,uz=(sg.y1-sg.y0)/sg.len;
+                    const strAngle=Math.atan2(ux,uz);
+                    const mesh=new THREE.Mesh(new THREE.BoxGeometry(carrierWm,carrierHm,lenM),mCarrier);
+                    mesh.position.set(cxM,railHm+carrierHm/2,czM);
+                    mesh.rotation.y=strAngle;
+                    pivot.add(mesh);
+                }
+            }
+            let t=0;
+            function loop(){
+                requestAnimationFrame(loop);
+                t+=0.016;
+                pivot.position.y=Math.sin(t*0.8)*0.02;
+                controls.update();
+                renderer.render(scene,camera);
+            }
+            loop();
+            console.log('KP 3D OK');
+        }catch(err){
+            console.error('Ошибка 3D:',err);
+            container.innerHTML='<div class="kp-3d-loading">Ошибка 3D: '+escapeHtml(err.message||'неизвестно')+'</div>';
+        }
+    }
+    tryInit();
+}
+
+function kpRenderCuttingScheme(cuttingScheme,targetLen){
+    let html='';
+    for(let i=0;i<cuttingScheme.length;i++){
+        const s=cuttingScheme[i];
+        html+='<div class="kp-cut-row">';
+        html+='<div class="kp-cut-num">#'+(i+1)+'</div>';
+        html+='<div class="kp-cut-bar">';
+        for(const item of s.items){const w=(item/targetLen)*100;html+='<span class="kp-cut-piece" style="width:'+w+'%;flex:0 0 '+w+'%" title="'+item+' мм">'+item+'</span>';}
+        if(s.waste>0){const w=(s.waste/targetLen)*100;html+='<span class="kp-cut-piece waste" style="width:'+w+'%;flex:0 0 '+w+'%" title="отход '+s.waste+' мм"></span>';}
+        html+='</div>';
+        html+='<div class="kp-cut-meta">'+s.items.join(' + ')+(s.waste>0?' · отход '+s.waste+' мм':'')+'</div>';
+        html+='</div>';
+    }
+    return html;
+}
+
+function getValidUntil(){
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    return dd + '.' + mm + '.' + yyyy;
+}
+
+function renderKp(kp){
+    const layout=recalcLayout(kp);
+    const rowsHtml=kp.rows.map(r=>{const cls=r.merged?'style="background:rgba(196,154,108,.08);border-radius:6px"':'';return '<tr '+cls+'><td>'+escapeHtml(r.label)+'</td><td class="qty">'+r.qty+' шт.</td></tr>';}).join('');
+    let mergeBlock='';
+    if(kp.mergeInfo){
+        mergeBlock='<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">4</span>Схема нарезки · объединение в '+kp.mergeInfo.refSize+' мм</h2>';
+        mergeBlock+='<div style="text-align:center;font-size:14px;color:#7a8a99;margin-bottom:16px">Объединено в размер <b style="color:#c49a6c">'+kp.mergeInfo.refSize+' мм</b> · +'+kp.mergeInfo.extraQty+' шт дополнительно к '+kp.mergeInfo.existingQty+' существующим · <b style="color:#c49a6c">итого '+kp.mergeInfo.totalQty+' шт</b> · отход '+Math.round(kp.mergeInfo.waste)+' мм ('+kp.mergeInfo.wastePct.toFixed(2)+'%)</div>';
+        mergeBlock+=kpRenderCuttingScheme(kp.mergeInfo.cuttingScheme,kp.mergeInfo.refSize);
+        mergeBlock+='</div>';
+    }
+    const validUntil = getValidUntil();
+
+    const headerLogo = 
+    '<div class="kp-logo-svg">' +
+    '<svg viewBox="0 0 316.2 113.2335483871" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">' +
+    '<style type="text/css">.st0{fill:#e10004;}.st1{opacity:0.3;}.st2{opacity:0.6;}.title{fill:#000000;}.slogan{fill:#5f6a69;}</style>' +
+    '<g transform="scale(4.541935483871) translate(0, 0)"><g>' +
+    '<polygon class="st0" points="5.1,16.3 15,6.4 13.7,5.2 2.7,16.3"/>' +
+    '<g><polygon class="st0" points="13.1,16.3 15.5,16.3 14.3,15"/><polygon class="st0" points="12.6,13.3 9.6,16.3 12.1,16.3 13.8,14.5"/><polygon class="st0" points="6.1,16.3 8.6,16.3 12.1,12.8 10.8,11.6"/></g>' +
+    '<polygon class="st0" points="0,16.3 1.7,16.3 13.2,4.7 12,3.5 0,15.5"/>' +
+    '<polygon class="st0" points="0,7.5 6.3,1.2 5.1,0 0,5.1"/>' +
+    '<polygon class="st0" points="0,4.1 2.8,1.2 1.6,0 0,1.6"/>' +
+    '<polygon class="st0" points="0,11 9.8,1.2 8.5,0 0,8.5"/>' +
+    '<polygon class="st0" points="0,14.5 11.5,3 10.3,1.7 0,12"/>' +
+    '<g class="st1"><polygon points="5.1,16.3 15,6.4 13.7,5.2 2.7,16.3"/><polygon points="0,16.3 1.7,16.3 13.2,4.7 12,3.5 0,15.5"/><polygon points="0,11 9.8,1.2 8.5,0 0,8.5"/><polygon points="0,14.5 11.5,3 10.3,1.7 0,12"/></g>' +
+    '<g class="st2"><polygon points="13.1,16.3 15.5,16.3 14.3,15"/><polygon points="12.6,13.3 9.6,16.3 12.1,16.3 13.8,14.5"/><polygon points="6.1,16.3 8.6,16.3 12.1,12.8 10.8,11.6"/></g>' +
+    '</g></g>' +
+    '<g transform="scale(0.04150390625) translate(2004.6305882353, 1132.8276888046)">' +
+    '<path transform="translate(0,0) rotate(180) scale(-1, 1)" class="title" d="M453 213l42 0.00195312h71h40h54v-62v-70c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8 h-22c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v14v504c0 12 2.33301 24 7 36 c2.66699 4.66699 5.5 9.16699 8.5 13.5s6.83301 8.16602 11.5 11.499s9.5 6.33301 14.5 9s11.167 4.66699 18.5 6c7.33301 2 15 3.33301 23 4s16.333 1 25 1h18h27h363h20c9.33301 0 18.166 -0.333008 26.499 -1s16.166 -2 23.499 -4c12 -2.66699 22.667 -7.66699 32 -15 c8.66699 -6.66699 15.334 -15 20.001 -25c2.66699 -5.33301 4.33398 -11 5.00098 -17s1 -12.333 1 -19v-16v-14v-12v-11v-34v-21v-9v-15h-44h-69h-40h-54v38v39h-231v-43v-60v-134v-188h18h171h18h24v35v43z"/>' +
+    '<path transform="translate(740,0) rotate(180) scale(-1, 1)" class="title" d="M453 170l-4 526.001h211v-615c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8h-22 c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v599h198l8 -561h18h171h18h24v35z"/>' +
+    '<path transform="translate(1454,0) rotate(180) scale(-1, 1)" class="title" d="M19 0l-3.00195 695.999h455c18 0 34.167 -1.5 48.5 -4.5s27.5 -9.5 39.5 -19.5c10.667 -8.66699 16.667 -18.834 18 -30.501s2 -21.5 2 -29.5v-122c0 -6 0.166992 -12.833 0.5 -20.5s-0.333984 -15.167 -2.00098 -22.5s-4.66699 -14.5 -9 -21.5 s-11.166 -13.167 -20.499 -18.5l-43.5 -23.5c-11.667 -6.33301 -23.167 -12.166 -34.5 -17.499c16.667 -6.66699 32.334 -12.5 47.001 -17.5s27.334 -11.833 38.001 -20.5c6 -4 10.667 -9 14 -15s6 -12.5 8 -19.5s3.33301 -14 4 -21s1 -12.833 1 -17.5v-121v-15v-10v-27 c0 -27.333 -9 -47.666 -27 -60.999c-16 -14 -43 -21 -81 -21h-189h-266zM220.998 424.999h44h110v29v53v53h-154v-45v-90zM220.998 134.999h65h88v32c0 12 0.333008 25.333 1 40v102c-16 -0.666992 -37 -0.666992 -63 0h-44h-47v-33v-40v-101z"/>' +
+    '<path transform="translate(2116,0) rotate(180) scale(-1, 1)" class="title" d="M16 0v696h230l2 -696h-98h-134z"/>' +
+    '<path transform="translate(2417,0) rotate(180) scale(-1, 1)" class="title" d="M453 213l42 0.00195312h71h40h54v-62v-70c0 -6.66699 -0.333008 -13 -1 -19s-2.33398 -11.667 -5.00098 -17c-4.66699 -10 -11.334 -18.333 -20.001 -25c-9.33301 -6.66699 -20 -11.667 -32 -15c-7.33301 -2 -15.166 -3.33301 -23.499 -4s-17.166 -1 -26.499 -1h-398h-8 h-22c-8.66699 0 -17 0.333008 -25 1s-15.667 2 -23 4c-7.33301 1.33301 -13.5 3.33301 -18.5 6s-9.83301 5.66699 -14.5 9s-8.5 7.16602 -11.5 11.499s-5.83301 8.83301 -8.5 13.5c-4.66699 12 -7 24 -7 36v16v14v504c0 12 2.33301 24 7 36 c2.66699 4.66699 5.5 9.16699 8.5 13.5s6.83301 8.16602 11.5 11.499s9.5 6.33301 14.5 9s11.167 4.66699 18.5 6c7.33301 2 15 3.33301 23 4s16.333 1 25 1h18h27h363h20c9.33301 0 18.166 -0.333008 26.499 -1s16.166 -2 23.499 -4c12 -2.66699 22.667 -7.66699 32 -15 c8.66699 -6.66699 15.334 -15 20.001 -25c2.66699 -5.33301 4.33398 -11 5.00098 -17s1 -12.333 1 -19v-16v-14v-12v-11v-34v-21v-9v-15h-44h-69h-40h-54v38v39h-231v-43v-60v-134v-188h18h171h18h24v35v43z"/>' +
+    '<path transform="translate(3157,0) rotate(180) scale(-1, 1)" class="title" d="M254 116l-4.00098 -20l-6.5 -33.5c-2.33301 -12.333 -4.5 -24.333 -6.5 -36s-3.66699 -20.5 -5 -26.5h-216v2l204 694h235l204 -694v-2h-216l-8 48.5c-3.33301 19.667 -7.66602 42.167 -12.999 67.5h-168zM283.999 232h106.998l-22.5 100.5l-30.5 139.5 c-3.33301 -13.333 -6.66602 -28.333 -9.99902 -45s-7.66602 -35 -12.999 -55z"/>' +
+    '</g>' +
+    '<g transform="scale(0.016) translate(5200, 4326.0483870968)">' +
+    '<path transform="translate(0,0) rotate(180) scale(-1, 1)" class="slogan" d="M707 337q0 73 -23 103t-79 30q-34 0 -63 -16t-47 -42q1 -31 2 -64.5t1 -68.5v-279h-106v293q0 43 -2.5 76.5t-12 55.5t-27.5 33.5t-49 11.5q-35 0 -64 -14.5t-50 -38.5v-417h-110v416q0 27 -7.5 41t-25.5 14q-8 0 -11.5 -1t-8.5 -1q0 -1 -1 10t-3 25l-4 36q11 5 24.5 8.5 t29.5 3.5q30 0 51.5 -9.5t30.5 -39.5q32 26 73 41t80 15q43 0 82 -14t66 -52q34 29 74.5 48t90.5 19q60 0 97.5 -19.5t59.5 -49t30 -64.5t8 -66v-188q0 -28 1 -45.5t5 -28t11 -14.5t18 -4q7 0 15 1t19 3l11 -80q-20 -6 -39 -9.5t-36 -3.5q-26 0 -46.5 8.5t-34.5 28.5 t-22 52.5t-8 79.5v176v0z"/>' +
+    '<path transform="translate(908,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
+    '<path transform="translate(1453,0) rotate(180) scale(-1, 1)" class="slogan" d="M340 685v85h184v-643q0 -28 8 -39t24 -11q8 0 18 1t22 6l9 -68l-34 -12q-20 -7 -41 -7q-27 0 -45 7t-33 24q-27 -15 -66 -27t-108 -12q-39 0 -79.5 8.5t-72.5 34.5t-52.5 73.5t-20.5 125.5v58q0 83 17.5 135.5t48 82.5t71 41t85.5 11q59 0 92 -12t46 -23v161h-73z M413 439q-19 12 -50 21.5t-66 9.5q-30 0 -55 -7.5t-43 -29t-27.5 -60t-9.5 -100.5q0 -63 8.5 -102t25 -60.5t41 -28.5t56.5 -7q48 0 74.5 9.5t45.5 19.5v335z"/>' +
+    '<path transform="translate(2077,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>' +
+    '<path transform="translate(2642,0) rotate(180) scale(-1, 1)" class="slogan" d="M426 427l-77 -6l-5 41q-19 0 -42 -2.5t-43 -10t-33.5 -21t-13.5 -35.5v-393h-111v444l-66 -5l-3 78q30 11 64.5 18t71.5 12v-52q26 29 61.5 46.5t91.5 17.5q24 0 50 -2.5t55 -8.5v-121z"/>' +
+    '<path transform="translate(3092,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
+    '<path transform="translate(4012,0) rotate(180) scale(-1, 1)" class="slogan" d="M389 391l-3 61q-20 11 -48 14.5t-51 3.5q-21 0 -43.5 -5t-41.5 -21.5t-31.5 -48t-12.5 -83.5v-77q0 -54 12.5 -85t31 -47t40.5 -20.5t42 -4.5q59 0 100.5 8t77.5 20l26 -82q-37 -18 -92.5 -26t-112.5 -8q-45 0 -87 8t-74.5 32.5t-52.5 70t-20 121.5v102q0 75 21 121 t55 71.5t76.5 34t84.5 8.5q33 0 57.5 -1.5t45.5 -4.5t42 -7.5t47 -10.5l-13 -144h-76z"/>' +
+    '<path transform="translate(4538,0) rotate(180) scale(-1, 1)" class="slogan" d="M306 -11q-44 0 -89.5 11.5t-83 41t-61.5 79t-24 125.5v80q0 76 23 122t59.5 71t81 32.5t86.5 7.5q41 0 81.5 -9t72.5 -33.5t51.5 -68t19.5 -113.5q0 -24 -1.5 -49t-5.5 -42h-362q0 -47 14.5 -79t36.5 -51t47.5 -27t47.5 -8q61 0 100.5 5t72.5 12l29 -73 q-37 -17 -88.5 -25.5t-107.5 -8.5zM292 477q-25 0 -49 -4.5t-43 -21t-31 -48t-13 -84.5h254q5 7 6 15t1 22q-1 33 -12 56t-28 37.5t-39 21t-46 6.5z"/>' +
+    '<path transform="translate(5103,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
+    '<path transform="translate(5419,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>' +
+    '<path transform="translate(5699,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
+    '<path transform="translate(6015,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
+    '<path transform="translate(6650,0) rotate(180) scale(-1, 1)" class="slogan" d="M263 -122q24 0 46.5 5t40 17.5t28.5 35.5t13 59q2 5 3 10t1 10q-13 -8 -46 -17t-90 -9q-41 0 -80.5 9.5t-71 35.5t-51 72t-19.5 120v84q0 77 19.5 125.5t51 76.5t72 38t81.5 10q35 0 61.5 -4t46.5 -10t35 -14.5t28 -17.5q14 21 33 29.5t47 8.5q17 0 34.5 -5.5t40.5 -14.5 l-9 -68q-12 4 -22 5.5t-18 1.5q-16 0 -24 -12.5t-8 -41.5v-382q0 -85 -24 -134.5t-60 -75t-78 -32.5t-78 -7q-62 0 -111.5 14t-84.5 52l32 63q45 -20 82 -28.5t79 -8.5zM395 436q-20 14 -50.5 24.5t-67.5 10.5q-27 0 -51 -7t-41.5 -26.5t-28 -54.5t-10.5 -91v-42 q0 -56 11 -89t30 -51t43 -23.5t51 -5.5q44 0 70 5.5t44 14.5v335z"/>' +
+    '<path transform="translate(7538,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>' +
+    '<path transform="translate(8101,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
+    '<path transform="translate(8646,0) rotate(180) scale(-1, 1)" class="slogan" d="M9 683v87h184v-646q0 -54 7 -87t13 -41l-68 -22q-11 5 -22.5 15.5t-20.5 30t-14.5 50t-5.5 75.5v538h-73z"/>' +
+    '<path transform="translate(8926,0) rotate(180) scale(-1, 1)" class="slogan" d="M545 550v-415q0 -29 9 -44.5t27 -15.5q14 0 33 10l16 -70q-17 -8 -41.5 -16t-47.5 -8q-26 0 -49 12t-27 38q-11 -16 -29.5 -26t-41 -15t-47 -7t-46.5 -2q-39 0 -77 10t-67.5 36t-48 71.5t-18.5 116.5v240h-64v86h175v-304q0 -51 6 -83t19 -50t34 -24.5t51 -6.5 q20 0 41.5 4.5t39.5 16t30 31t12 48.5v368z"/>' +
+    '<path transform="translate(9562,0) rotate(180) scale(-1, 1)" class="slogan" d="M222 721v-168h116v-89h-117v-334q0 -52 34 -52q15 0 32 3t43 8l11 -79q-23 -5 -53.5 -11.5t-61.5 -6.5q-60 0 -87.5 47t-27.5 127v298h-89l8 89h70q9 20 15 56t6 102z"/>' +
+    '<path transform="translate(9940,0) rotate(180) scale(-1, 1)" class="slogan" d="M223 551v-465h46v-86h-202v86h45v378h-73v87h184zM78 690q0 33 21 49t53 16q31 0 52.5 -15t21.5 -50t-21.5 -50.5t-52.5 -15.5q-32 0 -53 15t-21 51z"/>' +
+    '<path transform="translate(10256,0) rotate(180) scale(-1, 1)" class="slogan" d="M35 320q0 77 21 124t55 72.5t76.5 34t85.5 8.5q42 0 84.5 -8.5t76 -34t55 -72.5t21.5 -123v-101q0 -75 -20 -120.5t-53 -69.5t-76 -31.5t-89 -7.5q-45 0 -88 7.5t-76 31t-53 68.5t-20 120v102zM145 231q0 -53 11.5 -83.5t29.5 -47t40.5 -21t45.5 -4.5q22 0 45 4.5 t41.5 20.5t30.5 46.5t12 83.5v84q0 52 -12.5 84t-31 48.5t-41 22t-43.5 5.5t-44 -5.5t-41.5 -22.5t-30.5 -48.5t-12 -83.5v-83z"/>' +
+    '<path transform="translate(10801,0) rotate(180) scale(-1, 1)" class="slogan" d="M433 337q0 73 -27.5 103t-84.5 30q-42 0 -81 -17.5t-55 -52.5v-400h-111v416q0 27 -7.5 41t-25.5 14q-8 0 -12.5 -1t-9.5 -1l-6 71q17 6 37.5 9t39.5 0t34.5 -14t22.5 -32q35 33 84 45t103 12q60 0 99.5 -19.5t63 -49t33 -64.5t9.5 -66v-188q0 -36 2 -55.5t9.5 -28t21 -8 t36.5 3.5l11 -80q-41 -12 -75 -11t-58.5 17t-38.5 48t-14 82v196v0z"/>' +
+    '<path transform="translate(11436,0) rotate(180) scale(-1, 1)" class="slogan" d="M391 401v57q-20 8 -44.5 13t-50.5 5q-58 0 -90 -17t-32 -46q0 -32 23.5 -48.5t77.5 -25.5q30 -8 71 -14t78 -21t63 -46t26 -89q0 -91 -58.5 -135.5t-165.5 -44.5q-65 0 -120.5 7t-104.5 20l10 145h85v-57q19 -8 48 -15.5t67 -7.5q45 0 70.5 11t38 25.5t15 29t2.5 21.5 q0 19 -11 32t-31.5 21.5t-50 14.5t-66.5 12q-92 16 -133 52t-41 103q0 46 16 76.5t45.5 49.5t71.5 27t95 8q38 0 81 -5.5t102 -19.5l-9 -138h-78z"/>' +
+    '</g>' +
+    '</svg>' +
+    '</div>';
+
+    const html=
+    '<div class="kp-hero">'+
+    headerLogo +
+    '<h1 class="kp-h1">Коммерческое предложение</h1>'+
+    '<p class="kp-h2">Потолок CUBICA · '+escapeHtml(kp.railSpec)+' · '+escapeHtml(kp.color)+'</p>'+
+    '<p class="kp-client">Для: <b style="color:#2c3e50">'+escapeHtml(kp.manager)+'</b></p>'+
+    '</div>'+
+    '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">1</span>Параметры помещения</h2><div class="kp-grid">'+
+    '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>'+
+    '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>'+
+    '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+kp.railSpec+'</div></div>'+
+    '<div class="kp-stat"><div class="kp-stat-lb">Шаг</div><div class="kp-stat-vl"><span data-count="'+layout.pitch+'">0</span><small> мм</small></div></div>'+
+    '</div></div>'+
+    '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">2</span>3D-объём потолка</h2><div class="kp-3d" id="kp-3d-container"></div><div style="text-align:center;font-size:12px;color:#7a8a99;margin-top:10px">Потолок вращается автоматически · потяните мышью, чтобы посмотреть</div></div>'+
+    '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">3</span>2D-схема укладки</h2><div class="kp-scheme-2d">'+kpBuild2DScheme(kp,layout)+'</div></div>'+
+    mergeBlock+
+    '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">'+(kp.mergeInfo?'5':'4')+'</span>Спецификация</h2><table class="kp-table"><thead><tr><th>Позиция</th><th style="text-align:right">Кол-во</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
+    '<div class="kp-section kp-observable"><div class="kp-total"><div class="kp-total-lb">Итоговая стоимость с НДС</div><div class="kp-total-vl"><span data-count="'+kp.price+'" data-decimals="2">0</span><small>BYN</small></div><div style="margin-top:12px;font-size:13px;color:#7a8a99">Цена включает материалы, доставку, раскладку</div></div><div style="text-align:center"><span class="kp-valid">Предложение действительно до '+validUntil+'</span></div></div>'+
+    '<div class="kp-actions">'+
+        '<a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a>'+
+        '<button class="kp-btn danger" onclick="window.print()">📄 Распечатать счёт PDF</button>'+
+    '</div>'+
+    '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
+    '<div class="kp-actions" style="margin-top:8px">'+
+        '<a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a>'+
+    '</div>'+
+    '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж рейки — <b>Сергей</b>. Нажмите кнопку, чтобы позвонить.</div>'+
+    '<div class="kp-foot">© CUBICA.BY · Кубическая рейка · '+escapeHtml(kp.manager)+' · '+escapeHtml(kp.phone)+'</div>';
+    document.getElementById('kp-content').innerHTML=html;
+    
+    setTimeout(()=>{
+        const obs=new IntersectionObserver(entries=>{entries.forEach(en=>{if(en.isIntersecting)en.target.classList.add('visible');});},{threshold:0.1});
+        document.querySelectorAll('.kp-observable').forEach(el=>obs.observe(el));
+        document.querySelectorAll('[data-count]').forEach((el, idx)=>{
+            const target=parseFloat(el.getAttribute('data-count'));
+            const dec=parseInt(el.getAttribute('data-decimals')||'0',10);
+            const dur=1600;
+            const delay = 400 + idx * 80;
+            setTimeout(()=>{
+                const start=performance.now();
+                function tick(now){
+                    const t=Math.min(1,(now-start)/dur);
+                    const eased=1-Math.pow(1-t,3);
+                    const val=target*eased;
+                    if(dec>0) el.textContent=val.toFixed(2);
+                    else el.textContent=Math.round(val).toLocaleString('ru-RU');
+                    if(t<1) requestAnimationFrame(tick);
+                }
+                requestAnimationFrame(tick);
+            }, delay);
+        });
+        const c3d=document.getElementById('kp-3d-container');
+        if(c3d)setTimeout(()=>{try{kpInit3D(kp,layout,c3d);}catch(e){console.warn('KP 3D err',e);}},200);
+    },350);
+}
+
+function init(){
+    let payload=null;
+    try{const sp=new URLSearchParams(window.location.search);if(sp.has('kp'))payload=sp.get('kp');}catch(e){}
+    if(!payload){
+        console.log("Нет данных в URL. Загружаю тестовый пример...");
+        payload = TEST_PAYLOAD;
+    }
+    if(!payload){document.getElementById('kp-content').innerHTML='<div class="kp-empty"><h2>Нет данных для КП</h2><p>Откройте эту страницу по кнопке «Коммерческое предложение» в калькуляторе CUBICA.</p></div>';return;}
+    let kp;
+    try{kp=JSON.parse(b64dec(payload));}catch(e){document.getElementById('kp-content').innerHTML='<div class="kp-empty"><h2>Ошибка чтения КП</h2><p>'+escapeHtml(e.message)+'</p></div>';return;}
+    if(!kp||kp.v!==1){document.getElementById('kp-content').innerHTML='<div class="kp-empty"><h2>Неверный формат КП</h2></div>';return;}
+    renderKp(kp);
+}
+init();
+</script>
+</body>
+</html>
