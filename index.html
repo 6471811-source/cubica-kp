@@ -273,7 +273,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   setTimeout(function(){ if(!played) play(); }, 1000);
 })();
 
-/* ==================== ЛОГОТИП ДЛЯ ШАПКИ КП ==================== */
+/* ==================== ЛОГОТИП ДЛЯ ШАПКИ ==================== */
 function kpHeaderLogoSvg(){
   return '<div class="kp-logo-scope"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 316.2 113.2335483871" preserveAspectRatio="xMidYMid meet">'+
     '<style>.kp-logo-scope .st0{fill:#e10004;}.kp-logo-scope .st1{opacity:0.3;}.kp-logo-scope .st2{opacity:0.6;}.kp-logo-scope .title{fill:#000000;}.kp-logo-scope .slogan{fill:#5f6a69;}</style>'+
@@ -336,6 +336,10 @@ function b64dec(s){
     for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
     return new TextDecoder('utf-8').decode(bytes);
   } catch(e){ console.error('b64dec error:', e); return null; }
+}
+function b64enc(s){
+  return btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
@@ -768,8 +772,6 @@ function normalizeKpMulti(raw){
   kp.price = num(kp.price, 0);
   kp.color    = kp.color    || 'denver';
   kp.railSpec = kp.railSpec || (kp.p.railW + '×' + kp.p.railH);
-  kp.manager  = kp.manager  || 'Менеджер';
-  kp.phone    = kp.phone    || '';
   kp.valid    = kp.valid    || null;
   kp.area = num(kp.area, 0);
   if(kp.area <= 0) kp.area = (kp.L_in * kp.W_in) / 1e6;
@@ -777,7 +779,8 @@ function normalizeKpMulti(raw){
   kp.rows = Array.isArray(kp.rows) ? kp.rows.filter(r => r && r.label != null).map(r => ({
     label: String(r.label),
     qty: num(r.qty, 0),
-    unit: r.unit || 'шт.'
+    unit: r.unit || 'шт.',
+    price: num(r.price, 0)
   })) : [];
 
   if(kp.polygon && Array.isArray(kp.polygon)){
@@ -881,32 +884,48 @@ function buildRoomsSectionHtml(kp){
 
 function getValidUntil(){ const d = new Date(); d.setDate(d.getDate()+10); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
 
+function openInvoicePdf(kp){
+  const I5_URL = kp.i5_url || 'https://6471811-source.github.io/Cubica-i5/';
+  const invRows = (kp.rows || []).map(r => ({
+    label: r.label,
+    qty: r.qty,
+    unit: r.unit || 'шт.',
+    price: Number(r.price) || 0
+  }));
+  const data = {
+    v: 1,
+    rows: invRows,
+    company: kp.company,
+    buyer: kp.buyer,
+    deal: kp.deal
+  };
+  const b64 = b64enc(JSON.stringify(data));
+  const sep = I5_URL.includes('?') ? '&' : '?';
+  const url = I5_URL + sep + 'data=' + b64 + '&autopdf=1';
+  window.open(url, '_blank');
+}
+
 function renderKp(kp){
   const validUntil = kp.valid || getValidUntil();
   const isPoly = !!kp.polygon;
-
   const pitch = num(kp.p.railW,50) + num(kp.p.gap,15);
 
   let statsHtml = '';
   if(kp.rooms.length > 1){
-    // Мультирумность: количество + общая площадь
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Помещений</div><div class="kp-stat-vl">'+kp.rooms.length+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Общая площадь</div><div class="kp-stat-vl"><span data-count="'+kp.areaTotal.toFixed(2)+'">0</span><small> м²</small></div></div>';
 
-    // Цвет — только если одинаковый у всех
     const colorsSet = new Set(kp.rooms.map(r => String(r.color||'').toLowerCase()));
     if(colorsSet.size === 1){
       const r0 = kp.rooms[0];
       statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(r0.colorLabel || r0.color)+'</div></div>';
     }
-    // Рейка — только если одинаковая у всех
     const railsSet = new Set(kp.rooms.map(r => r.railW + '×' + r.railH));
     if(railsSet.size === 1){
       const r0 = kp.rooms[0];
       statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+r0.railW+'×'+r0.railH+'</div></div>';
     }
-    // Шаг — только если одинаковый у всех
     const pitchesSet = new Set(kp.rooms.map(r => r.railW + r.gap));
     if(pitchesSet.size === 1){
       const r0 = kp.rooms[0];
@@ -940,8 +959,7 @@ function renderKp(kp){
   const html =
     '<div class="kp-hero">'+kpHeaderLogoSvg()+
     '<h1 class="kp-h1">Коммерческое предложение</h1>'+
-    '<p class="kp-h2">Потолок CUBICA · '+escapeHtml(kp.railSpec)+' · '+escapeHtml(kp.color)+'</p>'+
-    '<p class="kp-client">Менеджер: <b style="color:#2c3e50">'+escapeHtml(kp.manager)+'</b></p></div>'+
+    '<p class="kp-client" style="margin-top:20px">Контактное лицо: <b style="color:#2c3e50">Вероника</b></p></div>'+
 
     '<div class="kp-section kp-observable"><h2 class="kp-sec-title"><span class="kp-sec-num">1</span>Параметры</h2><div class="kp-grid">'+statsHtml+'</div></div>'+
 
@@ -952,13 +970,19 @@ function renderKp(kp){
 
     '<div class="kp-section kp-observable"><div class="kp-total"><div class="kp-total-lb">Итоговая стоимость с НДС</div><div class="kp-total-vl"><span data-count="'+kp.price+'" data-decimals="2">0</span><small>BYN</small></div><div style="margin-top:12px;font-size:13px;color:#7a8a99">Цена включает материалы, доставку, раскладку</div></div><div style="text-align:center"><span class="kp-valid">Предложение действительно до '+validUntil+'</span></div></div>'+
 
-    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" onclick="window.print()">📄 Распечатать счёт PDF</button></div>'+
+    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Распечатать счёт PDF</button></div>'+
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
     '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж рейки — <b>Сергей</b>.</div>'+
-    '<div class="kp-foot">© CUBICA.BY · Кубическая рейка · '+escapeHtml(kp.manager)+' · '+escapeHtml(kp.phone)+'</div>';
+    '<div class="kp-foot">© CUBICA.BY · Кубическая рейка · Контактное лицо: Вероника</div>';
 
   document.getElementById('kp-content').innerHTML = html;
+
+  // Клик по кнопке «Распечатать счёт PDF» — открывает i5 с автогенерацией PDF
+  const btnInvoice = document.getElementById('btnInvoicePdf');
+  if(btnInvoice){
+    btnInvoice.addEventListener('click', () => openInvoicePdf(kp));
+  }
 
   setTimeout(()=>{
     const obs = new IntersectionObserver((entries)=>{
@@ -966,7 +990,6 @@ function renderKp(kp){
     }, {threshold:0.1});
     document.querySelectorAll('.kp-observable').forEach(el=>obs.observe(el));
 
-    // Анимация цифр с разделением разрядов
     document.querySelectorAll('[data-count]').forEach((el, idx)=>{
       const target = parseFloat(el.getAttribute('data-count'));
       if(!isFinite(target)) return;
@@ -989,7 +1012,6 @@ function renderKp(kp){
       }, 400 + idx*80);
     });
 
-    // 3D-карточки
     const _initMap = {};
     const room3dEls = document.querySelectorAll('[data-room-3d]');
     if(room3dEls.length){
@@ -1010,7 +1032,6 @@ function renderKp(kp){
       room3dEls.forEach(el => iObs.observe(el));
     }
 
-    // Слайдер
     const scroller = document.getElementById('kp-rooms-scroller');
     const nav = document.getElementById('kp-rooms-nav');
     if(scroller && nav){
