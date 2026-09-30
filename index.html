@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>КП CUBICA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
 </script>
@@ -146,6 +148,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-btn.secondary:hover{background:#fdfcfb;border-color:#c49a6c}
 .kp-btn.danger{background:linear-gradient(135deg,#c49a6c,#a87c4f);color:#fff;box-shadow:0 8px 24px rgba(196,154,108,.25)}
 .kp-btn.danger:hover{box-shadow:0 12px 32px rgba(196,154,108,.4)}
+.kp-btn.danger[disabled]{opacity:.6;cursor:wait;transform:none}
 .kp-btn.montage{background:#fff;color:#2c3e50;border:1px solid rgba(44,62,80,.2);box-shadow:0 4px 12px rgba(44,62,80,.04)}
 .kp-btn.montage:hover{background:#fdfcfb;border-color:#2c3e50}
 .kp-contacts{text-align:center;font-size:13px;color:#7a8a99;margin:16px 0 8px;line-height:1.7}
@@ -163,6 +166,81 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-dim-bg{fill:#fdfcfb}
 @media(max-width:640px){.kp-h1{font-size:32px}.kp-total-vl{font-size:42px}.kp-section{padding:24px 20px}.kp-wrap{padding:36px 16px 60px}.kp-stat-vl{font-size:22px}.kp-logo-scope{width:280px}}
 @media print{.kp-3d,.kp-room-3d,.kp-actions,.kp-bg,#splash{display:none!important}.kp-section{opacity:1!important;transform:none!important;page-break-inside:avoid}.kp-rooms-scroller{overflow:visible;flex-wrap:wrap}}
+
+/* ============ СЧЁТ-ДОГОВОР (для генерации PDF внутри i0) ============ */
+.invoice-render-host{position:fixed;left:-99999px;top:0;width:760px;height:1074px;overflow:hidden;pointer-events:none;z-index:-1}
+.invoice-render-host .preview-page{
+  background:#fff;width:760px;height:1074px;position:relative;display:flex;overflow:hidden;
+  font-family:'Segoe UI',Calibri,Arial,sans-serif;
+}
+.pv-panel{width:230px;padding:18px 12px 14px;display:flex;flex-direction:column;position:relative;background:#fff;color:#1a1a1a;border-right:2px solid #e10004;z-index:2;flex-shrink:0}
+.pv-panel .pv-logo-svg{width:100%;height:auto;display:block;margin-bottom:14px}
+.pv-panel-company{font-size:12px;font-weight:800;margin-bottom:5px;color:#000}
+.pv-panel-req{font-size:9px;line-height:1.5;color:#333}
+.pv-panel-req div{margin-bottom:2px;word-break:break-word}
+.pv-sep{border:none;border-top:1px dotted #ccc;margin:6px 0}
+.pv-req-qr{display:flex;align-items:center;gap:6px;margin-top:2px;padding:5px;border:1px dashed #e10004;border-radius:6px;background:#fff8f8}
+.pv-req-qr .box{width:50px;height:50px;flex-shrink:0;border:1px solid #e10004;border-radius:4px;padding:3px;background:#fff;display:flex;align-items:center;justify-content:center}
+.pv-req-qr .box svg{width:100%;height:100%;display:block}
+.pv-req-qr .meta{font-size:8px;color:#333;line-height:1.25}
+.pv-req-qr .meta b{display:block;color:#e10004;font-weight:800;font-size:8.5px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.pv-req-qr .meta .sub{color:#888;font-size:7.5px;margin-top:1px}
+.pv-side-contacts{margin-top:auto;margin-bottom:6px;padding:6px 0 5px;border-top:1px dotted #ccc;display:flex;flex-direction:column;gap:4px}
+.pv-side-title{font-size:8.5px;font-weight:800;color:#e10004;letter-spacing:.7px;text-transform:uppercase;margin:0 0 3px}
+.pv-side-row{display:flex;align-items:flex-start;gap:5px;font-size:9.5px;color:#1a1a1a;line-height:1.25}
+.pv-side-ic{width:13px;height:13px;flex-shrink:0;border-radius:50%;background:#e10004;color:#fff;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:800;line-height:1;margin-top:1px}
+.pv-side-val{font-weight:600;color:#1a1a1a;word-break:break-word}
+.pv-side-val small{display:block;font-weight:400;color:#888;font-size:7.5px;margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
+.pv-hours{display:flex;align-items:flex-start;gap:5px;padding:5px 0 6px;margin-bottom:6px;border-bottom:1px dotted #ccc;font-size:9.5px;color:#1a1a1a}
+.pv-hours .ic{width:13px;height:13px;flex-shrink:0;border-radius:50%;background:#e10004;color:#fff;display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:800;line-height:1;margin-top:1px}
+.pv-hours .val{font-weight:600;word-break:break-word}
+.pv-hours .val small{display:block;font-weight:400;color:#888;font-size:7.5px;margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
+.pv-side-bottom{display:flex;flex-direction:column;gap:6px}
+.pv-qr-wrap{display:flex;gap:6px;align-items:flex-start}
+.pv-qr{width:60px;height:60px;border:1.5px solid #e10004;padding:4px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff}
+.pv-qr svg{display:block;width:100%;height:100%}
+.pv-qr-meta{display:flex;flex-direction:column;gap:2px;font-size:8.5px;color:#555;line-height:1.25;justify-content:center}
+.pv-qr-meta b{color:#e10004;font-weight:800;font-size:9px;letter-spacing:.3px;text-transform:uppercase}
+.pv-issue{font-size:8.5px;color:#333;line-height:1.35;border-top:1px dotted #ccc;padding-top:5px}
+.pv-issue .t1{font-size:8.5px;font-weight:800;color:#e10004;letter-spacing:.5px;margin-bottom:2px;text-transform:uppercase}
+.pv-issue .addr{font-weight:700;color:#1a1a1a;font-size:9.5px}
+.pv-issue .sub{color:#888;font-size:8px;margin-top:2px}
+.pv-panel-thanks{margin-top:5px;padding-top:5px;border-top:1.5px solid #e10004;text-align:center}
+.pv-panel-thanks .t1{font-size:10px;font-weight:800;color:#e10004}
+.pv-panel-thanks .t2{font-size:8px;color:#888;margin-top:1px}
+.pv-main{flex:1;padding:16px 16px 14px;display:flex;flex-direction:column;color:#1a1a1a;position:relative;z-index:1;background:#fff;overflow:hidden}
+.pv-title{font-size:24px;font-weight:900;color:#1a1a1a;text-align:right;letter-spacing:.4px;line-height:1.05;margin-bottom:3px}
+.pv-meta{font-size:10px;color:#4a4a4a;text-align:right;line-height:1.4;margin-bottom:6px}
+.pv-hr{border:none;border-top:1px solid #dcdcdc;margin:5px 0 8px}
+.pv-cust-label{font-size:9.5px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:.4px}
+.pv-cust-line{font-size:9px;color:#5a5a5a;line-height:1.55}
+.pv-cust-line b{color:#1a1a1a;font-weight:700}
+.pv-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px;background:#fff}
+.pv-table th{background:#e10004;color:#fff;font-weight:700;font-size:8.5px;text-align:left;padding:4px 5px;border:none}
+.pv-table td{padding:3px 5px;border-bottom:1px solid #ececec;vertical-align:middle;line-height:1.2}
+.pv-table tr:nth-child(even) td{background:#fafafa}
+.pv-table td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pv-table td.vat{text-align:center;color:#888;font-weight:600}
+.pv-table td.sum-vat{font-weight:700;background:#fff5f5 !important}
+.pv-table td.pos{text-align:center;color:#888;font-weight:600;width:20px;font-size:8.5px}
+.pv-totals{margin-top:6px;margin-left:auto;width:260px}
+.pv-totals .row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.pv-totals .row .lbl{color:#777}
+.pv-totals .row .val{font-weight:700;font-variant-numeric:tabular-nums}
+.pv-totals .grand{margin-top:3px;background:#e10004;color:#fff;padding:6px 10px;border-radius:4px;font-size:11px;font-weight:800;display:flex;justify-content:space-between}
+.pv-note{font-size:8.5px;color:#1a1a1a;margin-top:4px;font-style:italic}
+.pv-contract{margin-top:12px;padding:12px 14px;background:#fafafa;border:1px solid #ececec;border-radius:5px;font-size:8.4px;color:#2a2a2a;line-height:1.5}
+.pv-contract .h{font-size:9.4px;font-weight:800;color:#e10004;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+.pv-contract .h2{font-size:8.7px;font-weight:800;color:#1a1a1a;margin-top:7px;margin-bottom:3px}
+.pv-contract p{margin:0 0 4px 0}
+.pv-contract b{color:#1a1a1a}
+.pv-contract .sign{display:flex;justify-content:space-between;gap:20px;margin-top:10px;padding-top:9px;border-top:1px dotted #ccc;font-size:8.4px;color:#555}
+.pv-contract .sign .col{flex:1}
+.pv-contract .sign .ln{margin-top:12px;border-bottom:1px solid #999;height:1px}
+.pv-footer{position:absolute;left:0;right:0;bottom:0;height:16px;font-size:8px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-weight:600;background:#fff;color:#1a1a1a;border-top:1.5px solid #e10004;z-index:3}
+.pv-footer span:first-child{color:#e10004;font-weight:800}
+.pv-footer span:last-child{color:#e10004}
+.pv-logo-color{width:100%;height:auto;display:block;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -255,6 +333,8 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+let CURRENT_KP = null;
+
 /* ==================== ЗАСТАВКА ==================== */
 (function(){
   var svg = document.getElementById('logoSvg');
@@ -337,19 +417,40 @@ function b64dec(s){
     return new TextDecoder('utf-8').decode(bytes);
   } catch(e){ console.error('b64dec error:', e); return null; }
 }
-function b64enc(s){
-  return btoa(unescape(encodeURIComponent(s)))
-    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
-function fmtNum2(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
+function fmtInvoice(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function declOfNum(n, forms){ n = Math.abs(n)%100; const n1 = n%10; if(n>10 && n<20) return forms[2]; if(n1>1 && n1<5) return forms[1]; if(n1===1) return forms[0]; return forms[2]; }
+function numToWordsRU(n){
+  n=Math.floor(Math.abs(Number(n)||0)); if(n===0) return 'ноль';
+  const units=['','один','два','три','четыре','пять','шесть','семь','восемь','девять','десять','одиннадцать','двенадцать','тринадцать','четырнадцать','пятнадцать','шестнадцать','семнадцать','восемнадцать','девятнадцать'];
+  const unitsF=['','одна','две','три','четыре','пять','шесть','семь','восемь','девять','десять','одиннадцать','двенадцать','тринадцать','четырнадцать','пятнадцать','шестнадцать','семнадцать','восемнадцать','девятнадцать'];
+  const tens=['','','двадцать','тридцать','сорок','пятьдесят','шестьдесят','семьдесят','восемьдесят','девяносто'];
+  const hundreds=['','сто','двести','триста','четыреста','пятьсот','шестьсот','семьсот','восемьсот','девятьсот'];
+  function chunk(x,fem){const res=[];const h=Math.floor(x/100),t=Math.floor((x%100)/10),u=x%10;if(h)res.push(hundreds[h]);if(t>=2){res.push(tens[t]);if(u)res.push(fem?unitsF[u]:units[u]);}else if(t===1){res.push((fem?unitsF:units)[x%100]);}else if(u){res.push(fem?unitsF[u]:units[u]);}return res.join(' ');}
+  function pf(n,forms){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return forms[2];if(n1>1&&n1<5)return forms[1];if(n1===1)return forms[0];return forms[2];}
+  let rest=n;
+  const mil=Math.floor(rest/1000000);rest=rest%1000000;
+  const tho=Math.floor(rest/1000);rest=rest%1000;
+  const out=[];
+  if(mil>0)out.push(chunk(mil,false)+' '+pf(mil,['миллион','миллиона','миллионов']));
+  if(tho>0)out.push(chunk(tho,true)+' '+pf(tho,['тысяча','тысячи','тысяч']));
+  if(rest>0)out.push(chunk(rest,false));
+  return out.join(' ');
+}
+function sumToWordsRU(total){
+  const n=Math.round(Math.abs(Number(total)||0)*100);
+  const rub=Math.floor(n/100),kop=n%100;
+  const rubStr=numToWordsRU(rub);
+  const rubForm=(()=>{const m=rub%100,m1=m%10;if(m>10&&m<20)return'белорусских рублей';if(m1===1)return'белорусский рубль';if(m1>1&&m1<5)return'белорусских рубля';return'белорусских рублей';})();
+  const kopStr=String(kop).padStart(2,'0');
+  const kopForm=(()=>{const m=kop%100,m1=kop%10;if(m>10&&m<20)return'копеек';if(m1===1)return'копейка';if(m1>1&&m1<5)return'копейки';return'копеек';})();
+  return rubStr.charAt(0).toUpperCase()+rubStr.slice(1)+' '+rubForm+' '+kopStr+' '+kopForm;
+}
 
 /* ==================== ЦВЕТА ==================== */
-const COLORS_HEX = {
-  ral9003:'#ecece7', ral9006:'#a5a8a9', ral7004:'#9ea0a3', ral7024:'#474b4e', ral9005:'#0a0a0a'
-};
+const COLORS_HEX = { ral9003:'#ecece7', ral9006:'#a5a8a9', ral7004:'#9ea0a3', ral7024:'#474b4e', ral9005:'#0a0a0a' };
 const WOOD_COLORS = {
   denver:{base:'#c9a166',dark:'#8a6b3a',opts:{grainDensity:170,warpAmp:3}},
   wellington:{base:'#9a8470',dark:'#5c4a38',opts:{grainDensity:170,warpAmp:3}},
@@ -478,7 +579,7 @@ function recalcLayout(room){
   return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon};
 }
 
-/* ==================== 2D ==================== */
+/* ==================== 2D (с размерами сторон полигона) ==================== */
 function kpBuild2DScheme(layout, railHex){
   const {L_in, W_in, polygon, isPolygon} = layout;
   const width = 800, height = 500;
@@ -509,9 +610,36 @@ function kpBuild2DScheme(layout, railHex){
     }
   }
   svg += '</g>';
-  if(polygon) svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
-  else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
-  if(!isPolygon){
+  if(polygon){
+    svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
+    // === ПОДПИСИ РАЗМЕРОВ СТОРОН (для полигона) ===
+    if(polygon.length >= 3){
+      let cxP = 0, cyP = 0;
+      for(const p of polygon){ cxP += p[0]; cyP += p[1]; }
+      cxP /= polygon.length; cyP /= polygon.length;
+      const cxScr = ox + cxP*s, cyScr = oy + cyP*s;
+      for(let i = 0; i < polygon.length; i++){
+        const a = polygon[i], b = polygon[(i+1) % polygon.length];
+        const sideLen = Math.round(Math.hypot(b[0]-a[0], b[1]-a[1]));
+        const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
+        const px = ox + mx*s, py = oy + my*s;
+        let ang = Math.atan2((b[1]-a[1])*s, (b[0]-a[0])*s) * 180/Math.PI;
+        if(ang > 90) ang -= 180;
+        if(ang < -90) ang += 180;
+        const nx = px - cxScr, ny = py - cyScr;
+        const nl = Math.hypot(nx, ny) || 1;
+        const OFF = 22;
+        const tx = px + nx/nl*OFF, ty = py + ny/nl*OFF;
+        const txt = sideLen + ' мм';
+        const boxW = txt.length * 8 + 16;
+        svg += '<g transform="translate('+tx.toFixed(1)+' '+ty.toFixed(1)+') rotate('+ang.toFixed(2)+')">';
+        svg += '<rect class="kp-dim-bg" x="'+(-boxW/2)+'" y="-9" width="'+boxW+'" height="18" rx="4"/>';
+        svg += '<text class="kp-dim-text" x="0" y="5" text-anchor="middle">'+txt+'</text>';
+        svg += '</g>';
+      }
+    }
+  } else {
+    svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
     const dimY = oy - 30; const cx = ox + dw/2;
     svg += '<line class="kp-dim-line" x1="'+ox+'" y1="'+dimY+'" x2="'+(ox+dw)+'" y2="'+dimY+'"/>';
     svg += '<line class="kp-dim-tick" x1="'+ox+'" y1="'+(dimY-6)+'" x2="'+ox+'" y2="'+(dimY+6)+'"/>';
@@ -684,7 +812,7 @@ function kpInit3D(room, layout, container){
   };
 }
 
-/* ==================== РЕЙКИ → м.п. ==================== */
+/* ==================== РЕЙКИ ==================== */
 function isRailRow(row){
   if(row.unit === 'mp' || row.unit === 'м.п.') return true;
   if(Array.isArray(row.pieces) && row.pieces.length > 0) return true;
@@ -734,14 +862,7 @@ function buildRoomRowsHtml(room, layout){
   for(const r of room.rows){
     if(isRailRow(r)){
       const key = normalizeRailLabel(r.label) || ('Рейка ' + layout.railW + '×' + layout.railH);
-      let mm = 0;
-      if(Array.isArray(r.pieces) && r.pieces.length) mm = r.pieces.reduce((a,b)=>a+b,0);
-      else {
-        const fromLabel = parseRailLengthFromLabel(r.label);
-        if(fromLabel > 0) mm = fromLabel * r.qty;
-        else mm = layout.perRailSegments.reduce((s,x)=>s+x.len,0);
-      }
-      railGroups.set(key, (railGroups.get(key)||0) + mm);
+      railGroups.set(key, (railGroups.get(key)||0) + 1);
     } else {
       otherRows.push(r);
     }
@@ -760,22 +881,30 @@ function buildRoomRowsHtml(room, layout){
 function normalizeKpMulti(raw){
   if(!raw || typeof raw !== 'object') throw new Error('payload не объект');
   const kp = {...raw};
-  if(kp.L_in == null && kp.L0_in != null) kp.L_in = kp.L0_in;
-  if(kp.W_in == null && kp.W0_in != null) kp.W_in = kp.W0_in;
-  kp.L_in = num(kp.L_in, 0);
-  kp.W_in = num(kp.W_in, 0);
-  kp.r    = num(kp.r, 0);
+  kp.price = num(kp.price, 0);
   kp.p = kp.p || {};
   kp.p.railW = num(kp.p.railW, 50);
   kp.p.railH = num(kp.p.railH, 30);
   kp.p.gap   = num(kp.p.gap,   15);
-  kp.price = num(kp.price, 0);
   kp.color    = kp.color    || 'denver';
   kp.railSpec = kp.railSpec || (kp.p.railW + '×' + kp.p.railH);
   kp.valid    = kp.valid    || null;
+  kp.L_in = num(kp.L_in, 0);
+  kp.W_in = num(kp.W_in, 0);
   kp.area = num(kp.area, 0);
   if(kp.area <= 0) kp.area = (kp.L_in * kp.W_in) / 1e6;
 
+  // Deal и Buyer с fallback
+  kp.deal = kp.deal && typeof kp.deal === 'object' ? {
+    delivery: String(kp.deal.delivery || 'pickup'),
+    payment: num(kp.deal.payment, 100),
+    days: num(kp.deal.days, 3)
+  } : { delivery:'pickup', payment:100, days:3 };
+
+  kp.buyer = kp.buyer && typeof kp.buyer === 'object' ? kp.buyer : {};
+  kp.company = kp.company && typeof kp.company === 'object' ? kp.company : {};
+
+  // Строки сводной спецификации (с ценами)
   kp.rows = Array.isArray(kp.rows) ? kp.rows.filter(r => r && r.label != null).map(r => ({
     label: String(r.label),
     qty: num(r.qty, 0),
@@ -832,7 +961,7 @@ function normalizeKpMulti(raw){
       railW: kp.p.railW, railH: kp.p.railH, gap: kp.p.gap,
       color: kp.color, colorLabel: kp.color,
       caps: kp.p.caps || 0, angle: kp.p.angle || 0,
-      rotation: kp.r, areaM2: kp.area,
+      rotation: kp.r || 0, areaM2: kp.area,
       polygon: kp.polygon,
       rows: kp.rows.slice()
     }];
@@ -842,7 +971,7 @@ function normalizeKpMulti(raw){
   return kp;
 }
 
-/* ==================== РЕНДЕР ==================== */
+/* ==================== СЕКЦИЯ ПОМЕЩЕНИЙ ==================== */
 function buildRoomsSectionHtml(kp){
   if(kp.rooms.length <= 1){
     const room = kp.rooms[0];
@@ -884,28 +1013,190 @@ function buildRoomsSectionHtml(kp){
 
 function getValidUntil(){ const d = new Date(); d.setDate(d.getDate()+10); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
 
-function openInvoicePdf(kp){
-  const I5_URL = kp.i5_url || 'https://6471811-source.github.io/Cubica-i5/';
-  const invRows = (kp.rows || []).map(r => ({
-    label: r.label,
-    qty: r.qty,
-    unit: r.unit || 'шт.',
-    price: Number(r.price) || 0
-  }));
-  const data = {
-    v: 1,
-    rows: invRows,
-    company: kp.company,
-    buyer: kp.buyer,
-    deal: kp.deal
-  };
-  const b64 = b64enc(JSON.stringify(data));
-  const sep = I5_URL.includes('?') ? '&' : '?';
-  const url = I5_URL + sep + 'data=' + b64 + '&autopdf=1';
-  window.open(url, '_blank');
+/* ==================== СЧЁТ-ДОГОВОР (генерация PDF) ==================== */
+function buildInvoiceHtml(kp){
+  const deal = kp.deal || { delivery:'pickup', payment:100, days:3 };
+  const buyer = kp.buyer || {};
+  const company = kp.company || {};
+  const rows = kp.rows || [];
+
+  const invNo = 'СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-123';
+  const invDate = new Date().toLocaleDateString('ru-RU');
+
+  const deliveryText = deal.delivery === 'pickup'
+    ? 'Самовывоз: ' + (company.pickupAddress || '')
+    : 'Доставка до адреса покупателя';
+  const paymentFull = deal.payment >= 100;
+  const paymentClause = paymentFull
+    ? 'Оплата производится в размере 100 % предоплаты.'
+    : 'Оплата производится в размере ' + deal.payment + ' % предоплаты. Остаток суммы по данному счёту-договору подлежит оплате после подтверждения Поставщиком готовности товара к отгрузке. На момент отгрузки товар должен быть оплачен Покупателем полностью.';
+
+  let subtotal = 0, vat = 0, total = 0;
+  const rowsHtml = rows.map((r, i) => {
+    const s = (Number(r.qty)||0) * (Number(r.price)||0);
+    const v = s * 0.20;
+    const t = s + v;
+    subtotal += s; vat += v; total += t;
+    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? Number(r.qty).toFixed(3) : r.qty;
+    return '<tr>' +
+      '<td class="pos">' + (i+1) + '</td>' +
+      '<td>' + escapeHtml(r.label) + '</td>' +
+      '<td class="num">' + qtyStr + '</td>' +
+      '<td>' + escapeHtml(r.unit || 'шт.') + '</td>' +
+      '<td class="num">' + fmtInvoice(r.price) + '</td>' +
+      '<td class="num">' + fmtInvoice(s) + '</td>' +
+      '<td class="vat">20 %</td>' +
+      '<td class="num">' + fmtInvoice(v) + '</td>' +
+      '<td class="num sum-vat">' + fmtInvoice(t) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  const sumWords = sumToWordsRU(total);
+
+  const buyerPosition = buyer.bPosition || '________________';
+  const buyerFio = buyer.bFio || '________________';
+  const buyerBasis = buyer.bBasis || '________________';
+
+  const bName = buyer.bName || '______________________________________________';
+  const bUnp = buyer.bUnp || '________________';
+  const bAddr = buyer.bAddress || '_______________________________________________';
+  const bAcc = buyer.bAccount || '___________________________________________';
+  const bBank = buyer.bBank || '_____________________________________________';
+
+  const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110" class="pv-logo-color"><defs><linearGradient id="cgpdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e10004"/><stop offset="100%" stop-color="#a50003"/></linearGradient></defs><g fill="url(#cgpdf)" transform="translate(6,10)"><polygon points="0,20 22,0 34,0 12,20"/><polygon points="0,30 30,4 42,4 12,30"/><polygon points="8,50 55,4 67,4 20,50"/><polygon points="8,60 80,0 92,0 20,60"/><polygon points="8,70 100,0 112,0 20,70"/><polygon points="20,90 90,20 102,20 32,90"/><polygon points="35,90 105,20 117,20 47,90"/><polygon points="50,90 110,32 122,32 62,90"/><polygon points="65,90 115,42 127,42 77,90"/></g><text x="145" y="55" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="44" fill="#000">CUBICA</text><text x="147" y="78" font-family="Calibri,Arial,sans-serif" font-size="15" fill="#5f6a69">modern ceiling solutions</text></svg>';
+
+  const QR = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><g fill="#1a1a1a"><rect x="0" y="0" width="7" height="7"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3"/><rect x="22" y="0" width="7" height="7"/><rect x="23" y="1" width="5" height="5" fill="#fff"/><rect x="24" y="2" width="3" height="3"/><rect x="0" y="22" width="7" height="7"/><rect x="1" y="23" width="5" height="5" fill="#fff"/><rect x="2" y="24" width="3" height="3"/></g></svg>';
+
+  return '<div class="preview-page">' +
+    '<div class="pv-panel">' +
+      '<div class="pv-logo-svg">' + LOGO + '</div>' +
+      '<div class="pv-panel-company">' + escapeHtml(company.name || 'ООО «ВК ТЕРМ»') + '</div>' +
+      '<div class="pv-panel-req"><div>УНП: ' + escapeHtml(company.unp || '') + '</div><div>' + escapeHtml(company.address || '') + '</div></div>' +
+      '<hr class="pv-sep">' +
+      '<div class="pv-panel-req"><div>Р/с: ' + escapeHtml(company.account || '') + '</div><div>Банк: ' + escapeHtml(company.bank || '') + '</div><div>БИК: ' + escapeHtml(company.bic || '') + '</div></div>' +
+      '<div class="pv-req-qr"><div class="box">' + QR + '</div><div class="meta"><b>Реквизиты в Word</b>Отсканируйте QR — бухгалтерия получит наши реквизиты в Word.<div class="sub">Для бухгалтера покупателя</div></div></div>' +
+      '<div class="pv-side-contacts">' +
+        '<div class="pv-side-title">Контакты</div>' +
+        '<div class="pv-side-row"><span class="pv-side-ic">Т</span><span class="pv-side-val">' + escapeHtml(company.phone || '') + '<small>Телефон</small></span></div>' +
+        '<div class="pv-side-row"><span class="pv-side-ic">@</span><span class="pv-side-val">' + escapeHtml(company.email || '') + '<small>E-mail</small></span></div>' +
+        '<div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">' + escapeHtml(company.site || '') + '<small>Сайт</small></span></div>' +
+        '<div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">' + escapeHtml(company.site2 || '') + '<small>Сайт партнёра</small></span></div>' +
+      '</div>' +
+      '<div class="pv-hours"><span class="ic">⏱</span><span class="val">' + escapeHtml(company.hours || '') + '<small>Режим работы</small></span></div>' +
+      '<div class="pv-side-bottom">' +
+        '<div class="pv-qr-wrap"><div class="pv-qr">' + QR + '</div><div class="pv-qr-meta"><b>QR адреса выписки</b>Наведите телефон —<br>откроется навигатор<br>с адресом ТТН/ТН.</div></div>' +
+        '<div class="pv-issue"><div class="t1">Адрес выписки ТТН / ТН</div><div class="addr">' + escapeHtml(company.issueAddress || '') + '</div><div class="sub">Срок действия счёта — 14 дней.</div></div>' +
+      '</div>' +
+      '<div class="pv-panel-thanks"><div class="t1">Спасибо за заказ!</div><div class="t2">' + escapeHtml(company.tagline || '') + '</div></div>' +
+    '</div>' +
+    '<div class="pv-main">' +
+      '<div class="pv-title">Счёт-договор</div>' +
+      '<div class="pv-meta">№ ' + invNo + '<br>от ' + invDate + '</div>' +
+      '<hr class="pv-hr">' +
+      '<div class="pv-cust-label">ПОКУПАТЕЛЬ:</div>' +
+      '<div class="pv-cust-line"><b>Наименование:</b> ' + escapeHtml(bName) + '<br><b>УНП:</b> ' + escapeHtml(bUnp) + '<br><b>Юридический адрес:</b> ' + escapeHtml(bAddr) + '<br><b>Р/с:</b> ' + escapeHtml(bAcc) + '<br><b>Банк:</b> ' + escapeHtml(bBank) + '</div>' +
+      '<table class="pv-table"><thead><tr>' +
+        '<th style="width:5%">№</th><th style="width:28%">Наименование</th><th style="width:9%">Кол-во</th><th style="width:5%">Ед.</th>' +
+        '<th style="width:12%">Цена без НДС</th><th style="width:12%">Ст-ть без НДС</th><th style="width:6%">НДС</th><th style="width:11%">НДС сумма</th><th style="width:12%">Сумма с НДС</th>' +
+      '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+      '<div class="pv-totals">' +
+        '<div class="row"><span class="lbl">Стоимость без НДС:</span><span class="val">' + fmtInvoice(subtotal) + ' BYN</span></div>' +
+        '<div class="row"><span class="lbl">НДС 20 %:</span><span class="val">' + fmtInvoice(vat) + ' BYN</span></div>' +
+        '<div class="grand"><span>ИТОГО с НДС:</span><span>' + fmtInvoice(total) + ' BYN</span></div>' +
+      '</div>' +
+      '<div class="pv-note">Всего наименований: ' + rows.length + ', на сумму ' + fmtInvoice(total) + ' BYN.</div>' +
+      '<div class="pv-contract">' +
+        '<div class="h">Счёт-договор поставки товара</div>' +
+        '<p><b>' + escapeHtml(company.name || '') + '</b>, именуемое далее «Поставщик», в лице ' + escapeHtml((company.directorPosition || '').toLowerCase()) + ' ' + escapeHtml(company.director || '') + ', действующего на основании Устава, с одной стороны, и <b>' + escapeHtml(buyer.bName || 'Покупатель') + '</b>, именуемое далее «Покупатель», в лице ' + buyerPosition + ' ' + buyerFio + ', действующего на основании ' + buyerBasis + ', с другой стороны, заключили настоящий договор о нижеследующем.</p>' +
+        '<div class="h2">1. Предмет договора</div>' +
+        '<p>1.1. Поставщик обязуется передать в собственность Покупателя, а Покупатель — принять и оплатить товар согласно спецификации, указанной в настоящем счёте-договоре.</p>' +
+        '<p>1.2. Качество товара соответствует требованиям нормативно-технической документации, действующей в Республике Беларусь.</p>' +
+        '<div class="h2">2. Сумма договора и порядок расчётов</div>' +
+        '<p>2.1. Общая сумма договора составляет <b>' + sumWords + '</b>, что соответствует <b>' + fmtInvoice(total) + ' BYN</b> с учётом НДС 20 %. Сумма НДС 20 % составляет <b>' + fmtInvoice(vat) + ' BYN</b>.</p>' +
+        '<p>2.2. ' + paymentClause + '</p>' +
+        '<div class="h2">3. Порядок поставки</div>' +
+        '<p>3.1. Поставка осуществляется: <b>' + escapeHtml(deliveryText) + '</b>.</p>' +
+        '<p>3.2. Срок поставки — <b>' + deal.days + ' ' + declOfNum(deal.days, ['день','дня','дней']) + '</b> с момента оплаты.</p>' +
+        '<p>3.3. Право собственности переходит к Покупателю в момент передачи товара и подписания ТТН/ТН.</p>' +
+        '<div class="h2">4. Ответственность сторон</div>' +
+        '<p>4.1. За неисполнение обязательств стороны несут ответственность в соответствии с законодательством Республики Беларусь.</p>' +
+        '<div class="h2">5. Срок действия и прочие условия</div>' +
+        '<p>5.1. Договор вступает в силу с момента подписания и действует до полного исполнения сторонами обязательств.</p>' +
+        '<p>5.2. Счёт действителен к оплате 14 календарных дней с даты выписки.</p>' +
+        '<p>5.3. Оплата счёта означает согласие Покупателя с условиями поставки.</p>' +
+        '<div class="sign">' +
+          '<div class="col"><b>Поставщик</b><div class="ln"></div><div>' + escapeHtml(company.directorPosition || '') + ' ' + escapeHtml(company.director || '') + '</div></div>' +
+          '<div class="col"><b>Покупатель</b><div class="ln"></div><div>&nbsp;</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pv-footer"><span>CUBICA.BY</span><span>' + escapeHtml(company.tagline || '') + ' · ' + escapeHtml(company.phone || '') + ' · ' + escapeHtml(company.email || '') + '</span><span>Спасибо за заказ!</span></div>' +
+    '</div>' +
+  '</div>';
 }
 
+async function downloadInvoicePdf(kp){
+  if(!window.html2canvas){ alert('html2canvas не загружен'); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){ alert('jsPDF не загружен'); return; }
+
+  let host = document.getElementById('invoiceRenderHost');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'invoiceRenderHost';
+    host.className = 'invoice-render-host';
+    document.body.appendChild(host);
+  }
+  host.innerHTML = buildInvoiceHtml(kp);
+
+  const target = host.querySelector('.preview-page');
+  if(!target){ alert('Не удалось построить счёт'); return; }
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  let canvas;
+  try{
+    canvas = await window.html2canvas(target, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      width: target.offsetWidth,
+      height: target.offsetHeight,
+      windowWidth: target.offsetWidth,
+      windowHeight: target.offsetHeight
+    });
+  } catch(e){
+    console.error('html2canvas err', e);
+    alert('Ошибка рендера PDF: ' + e.message);
+    return;
+  }
+
+  const imgData = canvas.toDataURL('image/png');
+  const PW = 210, PH = 297;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const imgW = PW;
+  const imgH = PW * (canvas.height / canvas.width);
+
+  if(imgH <= PH + 0.5){
+    doc.addImage(imgData, 'PNG', 0, 0, imgW, imgH, undefined, 'FAST');
+  } else {
+    let y = 0, remaining = imgH, firstPage = true;
+    while(remaining > 0){
+      if(!firstPage) doc.addPage();
+      firstPage = false;
+      doc.addImage(imgData, 'PNG', 0, y, imgW, imgH, undefined, 'FAST');
+      remaining -= PH;
+      y -= PH;
+    }
+  }
+
+  const invNo = 'СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'');
+  doc.save('CUBICA_' + invNo + '.pdf');
+}
+
+/* ==================== РЕНДЕР КП ==================== */
 function renderKp(kp){
+  CURRENT_KP = kp;
   const validUntil = kp.valid || getValidUntil();
   const isPoly = !!kp.polygon;
   const pitch = num(kp.p.railW,50) + num(kp.p.gap,15);
@@ -970,7 +1261,7 @@ function renderKp(kp){
 
     '<div class="kp-section kp-observable"><div class="kp-total"><div class="kp-total-lb">Итоговая стоимость с НДС</div><div class="kp-total-vl"><span data-count="'+kp.price+'" data-decimals="2">0</span><small>BYN</small></div><div style="margin-top:12px;font-size:13px;color:#7a8a99">Цена включает материалы, доставку, раскладку</div></div><div style="text-align:center"><span class="kp-valid">Предложение действительно до '+validUntil+'</span></div></div>'+
 
-    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Распечатать счёт PDF</button></div>'+
+    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Скачать счёт PDF</button></div>'+
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
     '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж рейки — <b>Сергей</b>.</div>'+
@@ -978,10 +1269,23 @@ function renderKp(kp){
 
   document.getElementById('kp-content').innerHTML = html;
 
-  // Клик по кнопке «Распечатать счёт PDF» — открывает i5 с автогенерацией PDF
+  // Кнопка скачивания PDF — работает прямо в i0
   const btnInvoice = document.getElementById('btnInvoicePdf');
   if(btnInvoice){
-    btnInvoice.addEventListener('click', () => openInvoicePdf(kp));
+    btnInvoice.addEventListener('click', async () => {
+      btnInvoice.disabled = true;
+      const old = btnInvoice.textContent;
+      btnInvoice.textContent = '⏳ Готовим PDF...';
+      try{
+        await downloadInvoicePdf(kp);
+      } catch(e){
+        console.error('PDF err', e);
+        alert('Ошибка: ' + e.message);
+      } finally {
+        btnInvoice.disabled = false;
+        btnInvoice.textContent = old;
+      }
+    });
   }
 
   setTimeout(()=>{
