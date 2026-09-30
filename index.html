@@ -94,6 +94,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
   display:flex;flex-direction:column;gap:16px;
   transition:box-shadow .3s,border-color .3s;position:relative;
 }
+.kp-room-card.has-badge{padding-top:52px}
 @media(min-width:900px){.kp-room-card{flex:0 0 480px}}
 .kp-room-card:hover{border-color:rgba(196,154,108,.5);box-shadow:0 8px 30px rgba(196,154,108,.12)}
 .kp-room-badge{
@@ -126,6 +127,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
   .kp-room-stats .row:nth-last-child(-n+2){border-bottom:1px dashed rgba(196,154,108,.15)}
   .kp-room-stats .row:last-child{border-bottom:none}
   .kp-room-card{padding:16px}
+  .kp-room-card.has-badge{padding-top:52px}
 }
 
 .kp-table{width:100%;border-collapse:collapse;font-size:14px}
@@ -337,6 +339,8 @@ function b64dec(s){
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
+function fmtNum2(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
 
 /* ==================== ЦВЕТА ==================== */
 const COLORS_HEX = {
@@ -705,11 +709,11 @@ function buildRoomStatsHtml(room, layout){
   let h = '';
   if(isPoly){
     h += '<div class="row"><span class="lb">Форма</span><span class="vl">Непрямоугольная</span></div>';
-    h += '<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2)+' м²</span></div>';
+    h += '<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2).replace('.',',')+' м²</span></div>';
   } else {
     h += '<div class="row"><span class="lb">Длина</span><span class="vl">'+room.L_in+' мм</span></div>';
     h += '<div class="row"><span class="lb">Ширина</span><span class="vl">'+room.W_in+' мм</span></div>';
-    h += '<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2)+' м²</span></div>';
+    h += '<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2).replace('.',',')+' м²</span></div>';
   }
   h += '<div class="row"><span class="lb">Цвет</span><span class="vl">'+escapeHtml(room.colorLabel || room.color || 'Denver')+'</span></div>';
   h += '<div class="row"><span class="lb">Рейка</span><span class="vl">'+layout.railW+'×'+layout.railH+'</span></div>';
@@ -856,7 +860,7 @@ function buildRoomsSectionHtml(kp){
     const layout = recalcLayout(room);
     const railHex = getRailHex(room.color);
     cards +=
-      '<div class="kp-room-card" data-room-idx="'+i+'">'+
+      '<div class="kp-room-card has-badge" data-room-idx="'+i+'">'+
         '<span class="kp-room-badge">'+(i+1)+'</span>'+
         '<div class="kp-room-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
         '<div class="kp-room-3d" data-room-3d="'+i+'"></div>'+
@@ -885,28 +889,51 @@ function renderKp(kp){
 
   let statsHtml = '';
   if(kp.rooms.length > 1){
+    // Мультирумность: количество + общая площадь
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Помещений</div><div class="kp-stat-vl">'+kp.rooms.length+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Общая площадь</div><div class="kp-stat-vl"><span data-count="'+kp.areaTotal.toFixed(2)+'">0</span><small> м²</small></div></div>';
+
+    // Цвет — только если одинаковый у всех
+    const colorsSet = new Set(kp.rooms.map(r => String(r.color||'').toLowerCase()));
+    if(colorsSet.size === 1){
+      const r0 = kp.rooms[0];
+      statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(r0.colorLabel || r0.color)+'</div></div>';
+    }
+    // Рейка — только если одинаковая у всех
+    const railsSet = new Set(kp.rooms.map(r => r.railW + '×' + r.railH));
+    if(railsSet.size === 1){
+      const r0 = kp.rooms[0];
+      statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+r0.railW+'×'+r0.railH+'</div></div>';
+    }
+    // Шаг — только если одинаковый у всех
+    const pitchesSet = new Set(kp.rooms.map(r => r.railW + r.gap));
+    if(pitchesSet.size === 1){
+      const r0 = kp.rooms[0];
+      const p0 = r0.railW + r0.gap;
+      statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+p0+'">0</span><small> мм</small></div></div>';
+    }
   } else if(isPoly){
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Форма</div><div class="kp-stat-vl" style="font-size:16px">Непрямоугольная</div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
   } else {
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Ширина</div><div class="kp-stat-vl"><span data-count="'+kp.W_in+'">0</span><small> мм</small></div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
   }
-  statsHtml +=
-    '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
-    '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
-    '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
 
   const rowsHtml = kp.rows.length ? kp.rows.map(r => {
     const qty = num(r.qty, 0);
     const unit = r.unit || 'шт.';
-    const qtyStr = unit === 'м.п.' ? Number(qty).toFixed(2).replace('.',',') : qty;
+    const qtyStr = unit === 'м.п.' ? Number(qty).toFixed(2).replace('.',',') : fmtNum0(qty);
     return '<tr><td>'+escapeHtml(r.label)+'</td><td class="qty">'+qtyStr+' '+escapeHtml(unit)+'</td></tr>';
   }).join('') : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
 
@@ -939,6 +966,7 @@ function renderKp(kp){
     }, {threshold:0.1});
     document.querySelectorAll('.kp-observable').forEach(el=>obs.observe(el));
 
+    // Анимация цифр с разделением разрядов
     document.querySelectorAll('[data-count]').forEach((el, idx)=>{
       const target = parseFloat(el.getAttribute('data-count'));
       if(!isFinite(target)) return;
@@ -950,13 +978,18 @@ function renderKp(kp){
           const t = Math.min(1, (now-start)/dur);
           const eased = 1-Math.pow(1-t, 3);
           const val = target*eased;
-          el.textContent = dec>0 ? val.toFixed(2) : Math.round(val).toLocaleString('ru-RU');
+          if(dec>0){
+            el.textContent = val.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2});
+          } else {
+            el.textContent = Math.round(val).toLocaleString('ru-RU');
+          }
           if(t<1) requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
       }, 400 + idx*80);
     });
 
+    // 3D-карточки
     const _initMap = {};
     const room3dEls = document.querySelectorAll('[data-room-3d]');
     if(room3dEls.length){
@@ -977,6 +1010,7 @@ function renderKp(kp){
       room3dEls.forEach(el => iObs.observe(el));
     }
 
+    // Слайдер
     const scroller = document.getElementById('kp-rooms-scroller');
     const nav = document.getElementById('kp-rooms-nav');
     if(scroller && nav){
