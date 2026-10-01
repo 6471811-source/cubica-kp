@@ -333,8 +333,6 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-let CURRENT_KP = null;
-
 /* ==================== ЗАСТАВКА ==================== */
 (function(){
   var svg = document.getElementById('logoSvg');
@@ -417,10 +415,15 @@ function b64dec(s){
     return new TextDecoder('utf-8').decode(bytes);
   } catch(e){ console.error('b64dec error:', e); return null; }
 }
+function b64enc(s){
+  return btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
 function fmtInvoice(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtMp(v){ return Number(v||0).toFixed(3).replace('.', ','); }
 function declOfNum(n, forms){ n = Math.abs(n)%100; const n1 = n%10; if(n>10 && n<20) return forms[2]; if(n1>1 && n1<5) return forms[1]; if(n1===1) return forms[0]; return forms[2]; }
 function numToWordsRU(n){
   n=Math.floor(Math.abs(Number(n)||0)); if(n===0) return 'ноль';
@@ -579,7 +582,7 @@ function recalcLayout(room){
   return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon};
 }
 
-/* ==================== 2D (с размерами сторон полигона) ==================== */
+/* ==================== 2D ==================== */
 function kpBuild2DScheme(layout, railHex){
   const {L_in, W_in, polygon, isPolygon} = layout;
   const width = 800, height = 500;
@@ -819,12 +822,15 @@ function isRailRow(row){
   const lbl = String(row.label || '').toLowerCase();
   return /рейк|rail/.test(lbl);
 }
+
+/* Нормализация: СНАЧАЛА убираем «(объединено)», ПОТОМ длину */
 function normalizeRailLabel(label){
   return String(label)
-    .replace(/\s+\d+\s*мм\s*$/i,'')
     .replace(/\s*\(объединено\)\s*$/i,'')
+    .replace(/\s+\d+\s*мм\s*$/i,'')
     .trim();
 }
+
 function parseRailLengthFromLabel(label){
   const m = String(label).match(/^Рейка Cubica .*?(\d+)\s*мм/i);
   return m ? parseInt(m[1], 10) : 0;
@@ -1037,7 +1043,7 @@ function buildInvoiceHtml(kp){
     const v = s * 0.20;
     const t = s + v;
     subtotal += s; vat += v; total += t;
-    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? Number(r.qty).toFixed(3) : r.qty;
+    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? fmtMp(r.qty) : r.qty;
     return '<tr>' +
       '<td class="pos">' + (i+1) + '</td>' +
       '<td>' + escapeHtml(r.label) + '</td>' +
@@ -1196,7 +1202,6 @@ async function downloadInvoicePdf(kp){
 
 /* ==================== РЕНДЕР КП ==================== */
 function renderKp(kp){
-  CURRENT_KP = kp;
   const validUntil = kp.valid || getValidUntil();
   const isPoly = !!kp.polygon;
   const pitch = num(kp.p.railW,50) + num(kp.p.gap,15);
@@ -1243,7 +1248,7 @@ function renderKp(kp){
   const rowsHtml = kp.rows.length ? kp.rows.map(r => {
     const qty = num(r.qty, 0);
     const unit = r.unit || 'шт.';
-    const qtyStr = unit === 'м.п.' ? Number(qty).toFixed(2).replace('.',',') : fmtNum0(qty);
+    const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
     return '<tr><td>'+escapeHtml(r.label)+'</td><td class="qty">'+qtyStr+' '+escapeHtml(unit)+'</td></tr>';
   }).join('') : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
 
@@ -1269,7 +1274,6 @@ function renderKp(kp){
 
   document.getElementById('kp-content').innerHTML = html;
 
-  // Кнопка скачивания PDF — работает прямо в i0
   const btnInvoice = document.getElementById('btnInvoicePdf');
   if(btnInvoice){
     btnInvoice.addEventListener('click', async () => {
