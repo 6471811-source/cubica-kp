@@ -333,27 +333,51 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 
 <div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-/* ==================== ЗАСТАВКА ==================== */
+<!-- ===================================================================
+     ЗАСТАВКА — вынесена в обычный скрипт, работает даже если Three.js упадёт
+     =================================================================== -->
+<script>
 (function(){
-  var svg = document.getElementById('logoSvg');
-  var splash = document.getElementById('splash');
-  var played = false;
-  function play(){
-    if(played) return;
-    played = true;
+  function tryPlay(){
+    var svg = document.getElementById('logoSvg');
+    var splash = document.getElementById('splash');
+    if(!svg || !splash) return;
+    if(svg.dataset.played === '1') return;
+    svg.dataset.played = '1';
     svg.classList.add('play');
     setTimeout(function(){
       splash.classList.add('hide');
       setTimeout(function(){ splash.style.display = 'none'; }, 900);
     }, 5200);
   }
-  requestAnimationFrame(function(){ requestAnimationFrame(play); });
-  setTimeout(function(){ if(!played) play(); }, 1000);
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      requestAnimationFrame(function(){ requestAnimationFrame(tryPlay); });
+    });
+  } else {
+    requestAnimationFrame(function(){ requestAnimationFrame(tryPlay); });
+  }
+  setTimeout(tryPlay, 1500);
+  /* Аварийный разблок: если что-то пойдёт не так — снять заставку через 8 сек */
+  setTimeout(function(){
+    var sp = document.getElementById('splash');
+    if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
+  }, 8000);
 })();
+</script>
+
+<script type="module">
+/* ===================================================================
+   Three.js грузим ДИНАМИЧЕСКИ — если CDN недоступен, KP всё равно отрисуется
+   =================================================================== */
+let THREE = null, OrbitControls = null;
+try {
+  THREE = await import('three');
+  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+  console.log('[KP] Three.js OK, r' + THREE.REVISION);
+} catch(e){
+  console.warn('[KP] Three.js недоступен, 3D-модели будут отключены:', e);
+}
 
 /* ==================== ЛОГОТИП ДЛЯ ШАПКИ ==================== */
 function kpHeaderLogoSvg(){
@@ -720,6 +744,7 @@ function kpBuild2DScheme(layout, railHex){
 /* ==================== ТЕКСТУРЫ ==================== */
 const TEX_CACHE = {};
 function makeWoodTexture(name){
+  if(!THREE) return null;
   if(TEX_CACHE[name]) return TEX_CACHE[name];
   const p = WOOD_COLORS[name] || WOOD_COLORS.denver;
   const {base,dark,opts} = p;
@@ -754,6 +779,13 @@ function makeWoodTexture(name){
 
 /* ==================== 3D ==================== */
 function kpInit3D(room, layout, container){
+  /* Если Three.js не загрузился — показываем заглушку, а не падаем */
+  if(!THREE || !OrbitControls){
+    if(container){
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9aa8b5;font-size:13px;text-align:center;padding:20px;line-height:1.5">3D-модель недоступна<br><span style="font-size:11.5px;color:#c5ced6">Не удалось загрузить Three.js с CDN</span></div>';
+    }
+    return null;
+  }
   if(!container || !container.clientWidth || !container.clientHeight){
     setTimeout(()=>kpInit3D(room, layout, container), 150);
     return null;
@@ -794,7 +826,7 @@ function kpInit3D(room, layout, container){
   }
   const mCarrier = new THREE.MeshLambertMaterial({color:0xd0c8be});
   const railWm = layout.railW/1000;
-  function makeRailBoxes(railW+', railH, wallT, flange, length, material){
+  function makeRailBoxes(railW, railH, wallT, flange, length, material){
     const g = new THREE.Group();
     const halfW = railW/2;
     let f = flange; const maxF = halfW - wallT*1.2; if(f>maxF) f = maxF;
@@ -815,9 +847,9 @@ function kpInit3D(room, layout, container){
     for(let i=0;i<rseg.pieces.length;i++){
       let piece = rseg.pieces[i];
       const remaining = rseg.len - cumM*1000;
-      if(piece > remaining) piece = мм remaining;
-      const piece</M = piece/1000;
-      const cxm =span rseg.x0/1000 + ux></*(cumM+pieceM/2)div + xOff;
+      if(piece > remaining) piece = remaining;
+      const pieceM = piece/1000;
+      const cxm = rseg.x0/1000 + ux*(cumM+pieceM/2) + xOff;
       const czm = rseg.y0/1000 + uz*(cumM+pieceM/2) + zOff;
       const grp = makeRailBoxes(railWm, railHm, 1.5/1000, 5/1000, pieceM, mRailMat);
       grp.position.set(cxm, 0, czm);
@@ -877,7 +909,6 @@ function normalizeRailLabel(label){
     .replace(/\s+\d+\s*мм\s*$/i,'')
     .trim();
 }
-function formatMp(mm){ return (mm / 1000).toFixed(2).replace('.', ','); }
 
 /* ==================== HTML КАРТОЧКИ ==================== */
 function buildRoomStatsHtml(room, layout){
@@ -895,7 +926,7 @@ function buildRoomStatsHtml(room, layout){
   }
   h += '<div class="row"><span class="lb">Цвет</span><span class="vl">'+escapeHtml(room.colorLabel || room.color || 'Denver')+'</span></div>';
   h += '<div class="row"><span class="lb">Рейка</span><span class="vl">'+layout.railW+'×'+layout.railH+'</span></div>';
-  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch>';
+  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch+' мм</span></div>';
   return h;
 }
 
@@ -1118,7 +1149,6 @@ function buildInvoiceHtml(kp){
   const bAcc  = buyer.bAccount || '___________________________________________';
   const bBank = buyer.bBank || '_____________________________________________';
 
-  // Идентично i5.24 renderPreview()
   return `
     <div class="preview-page">
     <div class="pv-panel">
@@ -1210,7 +1240,6 @@ async function downloadInvoicePdf(kp){
   if(!target){ alert('Не удалось построить счёт'); return; }
 
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  // Дополнительная пауза — даём SVG QR-кодам отрисоваться
   await new Promise(r => setTimeout(r, 120));
 
   let canvas;
@@ -1445,6 +1474,36 @@ function init(){
   console.groupEnd();
   renderKp(kp);
 }
+
+/* ==================== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК ==================== */
+window.addEventListener('error', function(ev){
+  console.error('[KP FATAL]', ev.error || ev.message);
+  var content = document.getElementById('kp-content');
+  if(content && content.querySelector('.kp-empty')){
+    content.innerHTML = '<div class="kp-empty"><h2>Ошибка загрузки КП</h2>' +
+      '<p style="font-size:13px;color:#c49a6c;word-break:break-word">' +
+      (ev.error && ev.error.message ? ev.error.message : ev.message || 'Неизвестная ошибка') +
+      '</p><p style="font-size:12px;color:#9aa8b5;margin-top:12px">' +
+      'Обновите страницу (Ctrl+F5). Если не поможет — откройте F12 → Console.</p></div>';
+  }
+  var sp = document.getElementById('splash');
+  if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
+});
+
+/* Если через 10 секунд контент всё ещё "Загрузка..." — значит модуль не отработал */
+setTimeout(function(){
+  var content = document.getElementById('kp-content');
+  if(content && content.querySelector('.kp-empty h2') &&
+     content.querySelector('.kp-empty h2').textContent.includes('Загрузка')){
+    content.innerHTML = '<div class="kp-empty"><h2>Не удалось запустить КП</h2>' +
+      '<p style="font-size:13px;color:#c49a6c">Скрипт не выполнился. Откройте F12 → Console и пришлите ошибки.</p>' +
+      '<p style="font-size:12px;color:#9aa8b5;margin-top:10px">Частая причина: не загрузился Three.js с unpkg.com. ' +
+      'Попробуйте другой браузер или VPN.</p></div>';
+    var sp = document.getElementById('splash');
+    if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
+  }
+}, 10000);
+
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 </script>
 </body>
