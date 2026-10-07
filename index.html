@@ -6,6 +6,7 @@
 <title>КП CUBICA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
 </script>
@@ -167,7 +168,9 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 @media(max-width:640px){.kp-h1{font-size:32px}.kp-total-vl{font-size:42px}.kp-section{padding:24px 20px}.kp-wrap{padding:36px 16px 60px}.kp-stat-vl{font-size:22px}.kp-logo-scope{width:280px}}
 @media print{.kp-3d,.kp-room-3d,.kp-actions,.kp-bg,#splash{display:none!important}.kp-section{opacity:1!important;transform:none!important;page-break-inside:avoid}.kp-rooms-scroller{overflow:visible;flex-wrap:wrap}}
 
-/* ============ СЧЁТ-ДОГОВОР (для генерации PDF внутри i0) ============ */
+/* ============================================================
+   СЧЁТ-ДОГОВОР — 1:1 копия из i5.24
+   ============================================================ */
 .invoice-render-host{position:fixed;left:-99999px;top:0;width:760px;height:1074px;overflow:hidden;pointer-events:none;z-index:-1}
 .invoice-render-host .preview-page{
   background:#fff;width:760px;height:1074px;position:relative;display:flex;overflow:hidden;
@@ -196,24 +199,25 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .pv-hours .val{font-weight:600;word-break:break-word}
 .pv-hours .val small{display:block;font-weight:400;color:#888;font-size:7.5px;margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
 .pv-side-bottom{display:flex;flex-direction:column;gap:6px}
-.pv-qr-wrap{display:flex;gap:6px;align-items:flex-start}
-.pv-qr{width:60px;height:60px;border:1.5px solid #e10004;padding:4px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff}
-.pv-qr svg{display:block;width:100%;height:100%}
-.pv-qr-meta{display:flex;flex-direction:column;gap:2px;font-size:8.5px;color:#555;line-height:1.25;justify-content:center}
-.pv-qr-meta b{color:#e10004;font-weight:800;font-size:9px;letter-spacing:.3px;text-transform:uppercase}
-.pv-issue{font-size:8.5px;color:#333;line-height:1.35;border-top:1px dotted #ccc;padding-top:5px}
-.pv-issue .t1{font-size:8.5px;font-weight:800;color:#e10004;letter-spacing:.5px;margin-bottom:2px;text-transform:uppercase}
-.pv-issue .addr{font-weight:700;color:#1a1a1a;font-size:9.5px}
-.pv-issue .sub{color:#888;font-size:8px;margin-top:2px}
+.pv-nav-block{border:1px dashed #e10004;border-radius:6px;background:#fff8f8;padding:8px 6px;display:flex;flex-direction:column;gap:12px}
+.pv-nav-title{font-size:8.5px;font-weight:800;color:#e10004;letter-spacing:.5px;text-transform:uppercase;text-align:center;margin-bottom:1px}
+.pv-nav-item{display:flex;align-items:center;gap:6px}
+.pv-nav-qr{width:52px;height:52px;flex-shrink:0;border:1px solid #e10004;border-radius:4px;padding:3px;background:#fff;display:flex;align-items:center;justify-content:center}
+.pv-nav-qr svg{display:block;width:100%;height:100%}
+.pv-nav-meta{font-size:8.5px;color:#333;line-height:1.25;flex:1}
+.pv-nav-meta b{display:block;color:#e10004;font-weight:800;font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;margin-bottom:1px}
+.pv-nav-meta .addr{font-weight:700;color:#1a1a1a;font-size:8.5px;line-height:1.2}
+.pv-nav-meta .sub{color:#888;font-size:7.5px;margin-top:1px;line-height:1.2}
+.pv-nav-sep{border:none;border-top:1px dashed #e10004;margin:0;opacity:.5}
 .pv-panel-thanks{margin-top:5px;padding-top:5px;border-top:1.5px solid #e10004;text-align:center}
 .pv-panel-thanks .t1{font-size:10px;font-weight:800;color:#e10004}
 .pv-panel-thanks .t2{font-size:8px;color:#888;margin-top:1px}
 .pv-main{flex:1;padding:16px 16px 14px;display:flex;flex-direction:column;color:#1a1a1a;position:relative;z-index:1;background:#fff;overflow:hidden}
-.pv-title{font-size:24px;font-weight:900;color:#1a1a1a;text-align:right;letter-spacing:.4px;line-height:1.05;margin-bottom:3px}
-.pv-meta{font-size:10px;color:#4a4a4a;text-align:right;line-height:1.4;margin-bottom:6px}
-.pv-hr{border:none;border-top:1px solid #dcdcdc;margin:5px 0 8px}
-.pv-cust-label{font-size:9.5px;font-weight:800;color:#000;margin-bottom:3px;letter-spacing:.4px}
-.pv-cust-line{font-size:9px;color:#5a5a5a;line-height:1.55}
+.pv-title{font-size:20px;font-weight:900;color:#1a1a1a;text-align:right;letter-spacing:.4px;line-height:1.05;margin-bottom:2px}
+.pv-meta{font-size:9px;color:#4a4a4a;text-align:right;line-height:1.4;margin-bottom:5px}
+.pv-hr{border:none;border-top:1px solid #dcdcdc;margin:4px 0 6px}
+.pv-cust-label{font-size:8.5px;font-weight:800;color:#000;margin-bottom:2px;letter-spacing:.4px}
+.pv-cust-line{font-size:8px;color:#5a5a5a;line-height:1.5}
 .pv-cust-line b{color:#1a1a1a;font-weight:700}
 .pv-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px;background:#fff}
 .pv-table th{background:#e10004;color:#fff;font-weight:700;font-size:8.5px;text-align:left;padding:4px 5px;border:none}
@@ -229,14 +233,14 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .pv-totals .row .val{font-weight:700;font-variant-numeric:tabular-nums}
 .pv-totals .grand{margin-top:3px;background:#e10004;color:#fff;padding:6px 10px;border-radius:4px;font-size:11px;font-weight:800;display:flex;justify-content:space-between}
 .pv-note{font-size:8.5px;color:#1a1a1a;margin-top:4px;font-style:italic}
-.pv-contract{margin-top:12px;padding:12px 14px;background:#fafafa;border:1px solid #ececec;border-radius:5px;font-size:8.4px;color:#2a2a2a;line-height:1.5}
-.pv-contract .h{font-size:9.4px;font-weight:800;color:#e10004;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
-.pv-contract .h2{font-size:8.7px;font-weight:800;color:#1a1a1a;margin-top:7px;margin-bottom:3px}
-.pv-contract p{margin:0 0 4px 0}
+.pv-contract{margin-top:5px;margin-bottom:0;padding:6px 8px;background:#fafafa;border:1px solid #ececec;border-radius:5px;font-size:6.96px;color:#2a2a2a;line-height:1.25}
+.pv-contract .h{font-size:8.04px;font-weight:800;color:#e10004;letter-spacing:.4px;text-transform:uppercase;margin-bottom:3px}
+.pv-contract .h2{font-size:7.44px;font-weight:800;color:#1a1a1a;margin-top:3px;margin-bottom:1px}
+.pv-contract p{margin:0 0 1.5px 0}
 .pv-contract b{color:#1a1a1a}
-.pv-contract .sign{display:flex;justify-content:space-between;gap:20px;margin-top:10px;padding-top:9px;border-top:1px dotted #ccc;font-size:8.4px;color:#555}
+.pv-contract .sign{display:flex;justify-content:space-between;gap:20px;margin-top:5px;padding-top:5px;border-top:1px dotted #ccc;font-size:6.96px;color:#555}
 .pv-contract .sign .col{flex:1}
-.pv-contract .sign .ln{margin-top:12px;border-bottom:1px solid #999;height:1px}
+.pv-contract .sign .ln{margin-top:8px;border-bottom:1px solid #999;height:1px}
 .pv-footer{position:absolute;left:0;right:0;bottom:0;height:16px;font-size:8px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-weight:600;background:#fff;color:#1a1a1a;border-top:1.5px solid #e10004;z-index:3}
 .pv-footer span:first-child{color:#e10004;font-weight:800}
 .pv-footer span:last-child{color:#e10004}
@@ -415,15 +419,12 @@ function b64dec(s){
     return new TextDecoder('utf-8').decode(bytes);
   } catch(e){ console.error('b64dec error:', e); return null; }
 }
-function b64enc(s){
-  return btoa(unescape(encodeURIComponent(s)))
-    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
 function fmtInvoice(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtMp(v){ return Number(v||0).toFixed(3).replace('.', ','); }
+function fmtQty2(v){ return (Number(v)||0).toFixed(2).replace('.', ','); }
 function declOfNum(n, forms){ n = Math.abs(n)%100; const n1 = n%10; if(n>10 && n<20) return forms[2]; if(n1>1 && n1<5) return forms[1]; if(n1===1) return forms[0]; return forms[2]; }
 function numToWordsRU(n){
   n=Math.floor(Math.abs(Number(n)||0)); if(n===0) return 'ноль';
@@ -451,6 +452,44 @@ function sumToWordsRU(total){
   const kopForm=(()=>{const m=kop%100,m1=kop%10;if(m>10&&m<20)return'копеек';if(m1===1)return'копейка';if(m1>1&&m1<5)return'копейки';return'копеек';})();
   return rubStr.charAt(0).toUpperCase()+rubStr.slice(1)+' '+rubForm+' '+kopStr+' '+kopForm;
 }
+
+/* ==================== КОНСТАНТЫ PDF-СЧЁТА (i5) ==================== */
+const COMPANY_FALLBACK = {
+  name:'ООО «ВК ТЕРМ»',
+  address:'РБ, 223051, Минская обл., Минский р-н, аг. Колодищи, ул. Минская, д. 5, пом. 107-4',
+  phone:'+375 (44) 752-70-73',
+  email:'7527073@armstrong.by',
+  site:'cubica.by',
+  site2:'armstrong.by',
+  unp:'191202287',
+  account:'BY79MTBK30120001093300125719',
+  bank:'ЗАО «МТБанк», г. Минск',
+  bic:'MTBKBY22',
+  director:'Креминский И. Ю.',
+  directorPosition:'Директор',
+  tagline:'modern ceiling solutions',
+  issueAddress:'аг. Колодищи, ул. Минская, 5, этаж 5, офис 508',
+  pickupAddress:'аг. Колодищи, территория учебного парка',
+  hours:'Пн–Пт, 09:00–15:00'
+};
+const REQUISITES_URL = 'https://6471811-source.github.io/cubica-requisites/requisites.docx';
+const OFFICE_COORDS    = { lat: 53.955161, lon: 27.778077 };
+const WAREHOUSE_COORDS = { lat: 53.945140, lon: 27.741913 };
+
+const LOGO_SVG_COLOR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110"><defs><linearGradient id="cgpdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e10004"/><stop offset="100%" stop-color="#a50003"/></linearGradient></defs><g fill="url(#cgpdf)" transform="translate(6,10)"><polygon points="0,20 22,0 34,0 12,20"/><polygon points="0,30 30,4 42,4 12,30"/><polygon points="8,50 55,4 67,4 20,50"/><polygon points="8,60 80,0 92,0 20,60"/><polygon points="8,70 100,0 112,0 20,70"/><polygon points="20,90 90,20 102,20 32,90"/><polygon points="35,90 105,20 117,20 47,90"/><polygon points="50,90 110,32 122,32 62,90"/><polygon points="65,90 115,42 127,42 77,90"/></g><text x="145" y="55" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="44" fill="#000">CUBICA</text><text x="147" y="78" font-family="Calibri,Arial,sans-serif" font-size="15" fill="#5f6a69">modern ceiling solutions</text></svg>`;
+const QR_STUB = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><g fill="#1a1a1a"><rect x="0" y="0" width="7" height="7"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3"/><rect x="22" y="0" width="7" height="7"/><rect x="23" y="1" width="5" height="5" fill="#fff"/><rect x="24" y="2" width="3" height="3"/><rect x="0" y="22" width="7" height="7"/><rect x="1" y="23" width="5" height="5" fill="#fff"/><rect x="2" y="24" width="3" height="3"/></g></svg>`;
+
+function makeQrSvg(data){
+  try{
+    if(typeof qrcode!=='function') return QR_STUB;
+    const qr = qrcode(0,'M'); qr.addData(data); qr.make();
+    const count = qr.getModuleCount(); let path = '';
+    for(let r=0;r<count;r++) for(let c=0;c<count;c++) if(qr.isDark(r,c)) path += `<rect x="${c}" y="${r}" width="1" height="1"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${count} ${count}" shape-rendering="crispEdges" style="width:100%;height:100%;display:block"><rect width="${count}" height="${count}" fill="#fff"/><g fill="#1a1a1a">${path}</g></svg>`;
+  }catch(e){ console.warn('QR:', e); return QR_STUB; }
+}
+function makeRequisitesQR(){ return makeQrSvg(REQUISITES_URL); }
+function makeNaviQR(coords){ return makeQrSvg('yandexnavi://build_route_on_map?lat_to='+coords.lat+'&lon_to='+coords.lon); }
 
 /* ==================== ЦВЕТА ==================== */
 const COLORS_HEX = { ral9003:'#ecece7', ral9006:'#a5a8a9', ral7004:'#9ea0a3', ral7024:'#474b4e', ral9005:'#0a0a0a' };
@@ -615,24 +654,34 @@ function kpBuild2DScheme(layout, railHex){
   svg += '</g>';
   if(polygon){
     svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
-    // === ПОДПИСИ РАЗМЕРОВ СТОРОН (для полигона) ===
+    // ===== ПОДПИСИ СТОРОН ПОЛИГОНА =====
+    // Подпись ставится по перпендикуляру к стороне, направленному НАРУЖУ полигона.
+    // Направление «наружу» определяется тестовой точкой через pointInPoly.
+    // Это гарантирует, что для непрямоугольных помещений подпись не «наедет» на площадь.
     if(polygon.length >= 3){
-      let cxP = 0, cyP = 0;
-      for(const p of polygon){ cxP += p[0]; cyP += p[1]; }
-      cxP /= polygon.length; cyP /= polygon.length;
-      const cxScr = ox + cxP*s, cyScr = oy + cyP*s;
       for(let i = 0; i < polygon.length; i++){
         const a = polygon[i], b = polygon[(i+1) % polygon.length];
         const sideLen = Math.round(Math.hypot(b[0]-a[0], b[1]-a[1]));
+        if(sideLen < 30) continue; // слишком короткие стороны не подписываем
         const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
         const px = ox + mx*s, py = oy + my*s;
         let ang = Math.atan2((b[1]-a[1])*s, (b[0]-a[0])*s) * 180/Math.PI;
         if(ang > 90) ang -= 180;
         if(ang < -90) ang += 180;
-        const nx = px - cxScr, ny = py - cyScr;
-        const nl = Math.hypot(nx, ny) || 1;
-        const OFF = 22;
-        const tx = px + nx/nl*OFF, ty = py + ny/nl*OFF;
+
+        // Перпендикуляр к стороне в мировых координатах
+        const edx = b[0]-a[0], edy = b[1]-a[1];
+        const elen = Math.hypot(edx, edy) || 1;
+        let nX = -edy/elen, nY = edx/elen;
+        // Проверяем, куда направлен нормаль — «внутрь» или «наружу»
+        const testX = mx + nX * 60;
+        const testY = my + nY * 60;
+        if (pointInPoly(polygon, testX, testY)) { nX = -nX; nY = -nY; }
+
+        // Отступ от стороны (в пикселях, направление в world совпадает с направлением в screen)
+        const OFF = 30;
+        const tx = px + nX * OFF;
+        const ty = py + nY * OFF;
         const txt = sideLen + ' мм';
         const boxW = txt.length * 8 + 16;
         svg += '<g transform="translate('+tx.toFixed(1)+' '+ty.toFixed(1)+') rotate('+ang.toFixed(2)+')">';
@@ -745,7 +794,7 @@ function kpInit3D(room, layout, container){
   }
   const mCarrier = new THREE.MeshLambertMaterial({color:0xd0c8be});
   const railWm = layout.railW/1000;
-  function makeRailBoxes(railW, railH, wallT, flange, length, material){
+  function makeRailBoxes(railW+', railH, wallT, flange, length, material){
     const g = new THREE.Group();
     const halfW = railW/2;
     let f = flange; const maxF = halfW - wallT*1.2; if(f>maxF) f = maxF;
@@ -766,9 +815,9 @@ function kpInit3D(room, layout, container){
     for(let i=0;i<rseg.pieces.length;i++){
       let piece = rseg.pieces[i];
       const remaining = rseg.len - cumM*1000;
-      if(piece > remaining) piece = remaining;
-      const pieceM = piece/1000;
-      const cxm = rseg.x0/1000 + ux*(cumM+pieceM/2) + xOff;
+      if(piece > remaining) piece = мм remaining;
+      const piece</M = piece/1000;
+      const cxm =span rseg.x0/1000 + ux></*(cumM+pieceM/2)div + xOff;
       const czm = rseg.y0/1000 + uz*(cumM+pieceM/2) + zOff;
       const grp = makeRailBoxes(railWm, railHm, 1.5/1000, 5/1000, pieceM, mRailMat);
       grp.position.set(cxm, 0, czm);
@@ -822,22 +871,13 @@ function isRailRow(row){
   const lbl = String(row.label || '').toLowerCase();
   return /рейк|rail/.test(lbl);
 }
-
-/* Нормализация: СНАЧАЛА убираем «(объединено)», ПОТОМ длину */
 function normalizeRailLabel(label){
   return String(label)
     .replace(/\s*\(объединено\)\s*$/i,'')
     .replace(/\s+\d+\s*мм\s*$/i,'')
     .trim();
 }
-
-function parseRailLengthFromLabel(label){
-  const m = String(label).match(/^Рейка Cubica .*?(\d+)\s*мм/i);
-  return m ? parseInt(m[1], 10) : 0;
-}
-function formatMp(mm){
-  return (mm / 1000).toFixed(2).replace('.', ',');
-}
+function formatMp(mm){ return (mm / 1000).toFixed(2).replace('.', ','); }
 
 /* ==================== HTML КАРТОЧКИ ==================== */
 function buildRoomStatsHtml(room, layout){
@@ -855,7 +895,7 @@ function buildRoomStatsHtml(room, layout){
   }
   h += '<div class="row"><span class="lb">Цвет</span><span class="vl">'+escapeHtml(room.colorLabel || room.color || 'Denver')+'</span></div>';
   h += '<div class="row"><span class="lb">Рейка</span><span class="vl">'+layout.railW+'×'+layout.railH+'</span></div>';
-  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch+' мм</span></div>';
+  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch>';
   return h;
 }
 
@@ -900,17 +940,20 @@ function normalizeKpMulti(raw){
   kp.area = num(kp.area, 0);
   if(kp.area <= 0) kp.area = (kp.L_in * kp.W_in) / 1e6;
 
+  // Invoice number
+  kp.invoiceNumber = kp.invoiceNumber || ('СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-001');
+
   // Deal и Buyer с fallback
   kp.deal = kp.deal && typeof kp.deal === 'object' ? {
     delivery: String(kp.deal.delivery || 'pickup'),
     payment: num(kp.deal.payment, 100),
-    days: num(kp.deal.days, 3)
-  } : { delivery:'pickup', payment:100, days:3 };
+    days: num(kp.deal.days, 3),
+    deliveryData: (kp.deal.deliveryData && typeof kp.deal.deliveryData === 'object') ? kp.deal.deliveryData : {}
+  } : { delivery:'pickup', payment:100, days:3, deliveryData:{} };
 
   kp.buyer = kp.buyer && typeof kp.buyer === 'object' ? kp.buyer : {};
-  kp.company = kp.company && typeof kp.company === 'object' ? kp.company : {};
+  kp.company = kp.company && typeof kp.company === 'object' ? Object.assign({}, COMPANY_FALLBACK, kp.company) : Object.assign({}, COMPANY_FALLBACK);
 
-  // Строки сводной спецификации (с ценами)
   kp.rows = Array.isArray(kp.rows) ? kp.rows.filter(r => r && r.label != null).map(r => ({
     label: String(r.label),
     qty: num(r.qty, 0),
@@ -1019,18 +1062,20 @@ function buildRoomsSectionHtml(kp){
 
 function getValidUntil(){ const d = new Date(); d.setDate(d.getDate()+10); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
 
-/* ==================== СЧЁТ-ДОГОВОР (генерация PDF) ==================== */
+/* ============================================================
+   СЧЁТ-ДОГОВОР — точная копия renderPreview() из i5.24
+   ============================================================ */
 function buildInvoiceHtml(kp){
-  const deal = kp.deal || { delivery:'pickup', payment:100, days:3 };
+  const COMPANY = Object.assign({}, COMPANY_FALLBACK, kp.company || {});
+  const deal = kp.deal || { delivery:'pickup', payment:100, days:3, deliveryData:{} };
   const buyer = kp.buyer || {};
-  const company = kp.company || {};
   const rows = kp.rows || [];
 
-  const invNo = 'СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-123';
+  const invNo = kp.invoiceNumber || ('СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-001');
   const invDate = new Date().toLocaleDateString('ru-RU');
 
   const deliveryText = deal.delivery === 'pickup'
-    ? 'Самовывоз: ' + (company.pickupAddress || '')
+    ? 'Самовывоз: ' + (COMPANY.pickupAddress || '')
     : 'Доставка до адреса покупателя';
   const paymentFull = deal.payment >= 100;
   const paymentClause = paymentFull
@@ -1043,13 +1088,13 @@ function buildInvoiceHtml(kp){
     const v = s * 0.20;
     const t = s + v;
     subtotal += s; vat += v; total += t;
-    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? fmtMp(r.qty) : r.qty;
+    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? fmtQty2(r.qty) : String(r.qty);
     return '<tr>' +
       '<td class="pos">' + (i+1) + '</td>' +
       '<td>' + escapeHtml(r.label) + '</td>' +
       '<td class="num">' + qtyStr + '</td>' +
       '<td>' + escapeHtml(r.unit || 'шт.') + '</td>' +
-      '<td class="num">' + fmtInvoice(r.price) + '</td>' +
+      '<td class="num">' + fmtInvoice(r.price || 0) + '</td>' +
       '<td class="num">' + fmtInvoice(s) + '</td>' +
       '<td class="vat">20 %</td>' +
       '<td class="num">' + fmtInvoice(v) + '</td>' +
@@ -1063,81 +1108,89 @@ function buildInvoiceHtml(kp){
   const buyerFio = buyer.bFio || '________________';
   const buyerBasis = buyer.bBasis || '________________';
 
+  const unloadingClause = (deal.delivery === 'delivery')
+    ? '<p>3.4. Разгрузка товара на объекте Покупателя осуществляется силами и средствами Покупателя. Водитель Поставщика не осуществляет выгрузку и перемещение товара.</p>'
+    : '';
+
   const bName = buyer.bName || '______________________________________________';
-  const bUnp = buyer.bUnp || '________________';
+  const bUnp  = buyer.bUnp  || '________________';
   const bAddr = buyer.bAddress || '_______________________________________________';
-  const bAcc = buyer.bAccount || '___________________________________________';
+  const bAcc  = buyer.bAccount || '___________________________________________';
   const bBank = buyer.bBank || '_____________________________________________';
 
-  const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110" class="pv-logo-color"><defs><linearGradient id="cgpdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e10004"/><stop offset="100%" stop-color="#a50003"/></linearGradient></defs><g fill="url(#cgpdf)" transform="translate(6,10)"><polygon points="0,20 22,0 34,0 12,20"/><polygon points="0,30 30,4 42,4 12,30"/><polygon points="8,50 55,4 67,4 20,50"/><polygon points="8,60 80,0 92,0 20,60"/><polygon points="8,70 100,0 112,0 20,70"/><polygon points="20,90 90,20 102,20 32,90"/><polygon points="35,90 105,20 117,20 47,90"/><polygon points="50,90 110,32 122,32 62,90"/><polygon points="65,90 115,42 127,42 77,90"/></g><text x="145" y="55" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="44" fill="#000">CUBICA</text><text x="147" y="78" font-family="Calibri,Arial,sans-serif" font-size="15" fill="#5f6a69">modern ceiling solutions</text></svg>';
-
-  const QR = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><g fill="#1a1a1a"><rect x="0" y="0" width="7" height="7"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3"/><rect x="22" y="0" width="7" height="7"/><rect x="23" y="1" width="5" height="5" fill="#fff"/><rect x="24" y="2" width="3" height="3"/><rect x="0" y="22" width="7" height="7"/><rect x="1" y="23" width="5" height="5" fill="#fff"/><rect x="2" y="24" width="3" height="3"/></g></svg>';
-
-  return '<div class="preview-page">' +
-    '<div class="pv-panel">' +
-      '<div class="pv-logo-svg">' + LOGO + '</div>' +
-      '<div class="pv-panel-company">' + escapeHtml(company.name || 'ООО «ВК ТЕРМ»') + '</div>' +
-      '<div class="pv-panel-req"><div>УНП: ' + escapeHtml(company.unp || '') + '</div><div>' + escapeHtml(company.address || '') + '</div></div>' +
-      '<hr class="pv-sep">' +
-      '<div class="pv-panel-req"><div>Р/с: ' + escapeHtml(company.account || '') + '</div><div>Банк: ' + escapeHtml(company.bank || '') + '</div><div>БИК: ' + escapeHtml(company.bic || '') + '</div></div>' +
-      '<div class="pv-req-qr"><div class="box">' + QR + '</div><div class="meta"><b>Реквизиты в Word</b>Отсканируйте QR — бухгалтерия получит наши реквизиты в Word.<div class="sub">Для бухгалтера покупателя</div></div></div>' +
-      '<div class="pv-side-contacts">' +
-        '<div class="pv-side-title">Контакты</div>' +
-        '<div class="pv-side-row"><span class="pv-side-ic">Т</span><span class="pv-side-val">' + escapeHtml(company.phone || '') + '<small>Телефон</small></span></div>' +
-        '<div class="pv-side-row"><span class="pv-side-ic">@</span><span class="pv-side-val">' + escapeHtml(company.email || '') + '<small>E-mail</small></span></div>' +
-        '<div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">' + escapeHtml(company.site || '') + '<small>Сайт</small></span></div>' +
-        '<div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">' + escapeHtml(company.site2 || '') + '<small>Сайт партнёра</small></span></div>' +
-      '</div>' +
-      '<div class="pv-hours"><span class="ic">⏱</span><span class="val">' + escapeHtml(company.hours || '') + '<small>Режим работы</small></span></div>' +
-      '<div class="pv-side-bottom">' +
-        '<div class="pv-qr-wrap"><div class="pv-qr">' + QR + '</div><div class="pv-qr-meta"><b>QR адреса выписки</b>Наведите телефон —<br>откроется навигатор<br>с адресом ТТН/ТН.</div></div>' +
-        '<div class="pv-issue"><div class="t1">Адрес выписки ТТН / ТН</div><div class="addr">' + escapeHtml(company.issueAddress || '') + '</div><div class="sub">Срок действия счёта — 14 дней.</div></div>' +
-      '</div>' +
-      '<div class="pv-panel-thanks"><div class="t1">Спасибо за заказ!</div><div class="t2">' + escapeHtml(company.tagline || '') + '</div></div>' +
-    '</div>' +
-    '<div class="pv-main">' +
-      '<div class="pv-title">Счёт-договор</div>' +
-      '<div class="pv-meta">№ ' + invNo + '<br>от ' + invDate + '</div>' +
-      '<hr class="pv-hr">' +
-      '<div class="pv-cust-label">ПОКУПАТЕЛЬ:</div>' +
-      '<div class="pv-cust-line"><b>Наименование:</b> ' + escapeHtml(bName) + '<br><b>УНП:</b> ' + escapeHtml(bUnp) + '<br><b>Юридический адрес:</b> ' + escapeHtml(bAddr) + '<br><b>Р/с:</b> ' + escapeHtml(bAcc) + '<br><b>Банк:</b> ' + escapeHtml(bBank) + '</div>' +
-      '<table class="pv-table"><thead><tr>' +
-        '<th style="width:5%">№</th><th style="width:28%">Наименование</th><th style="width:9%">Кол-во</th><th style="width:5%">Ед.</th>' +
-        '<th style="width:12%">Цена без НДС</th><th style="width:12%">Ст-ть без НДС</th><th style="width:6%">НДС</th><th style="width:11%">НДС сумма</th><th style="width:12%">Сумма с НДС</th>' +
-      '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
-      '<div class="pv-totals">' +
-        '<div class="row"><span class="lbl">Стоимость без НДС:</span><span class="val">' + fmtInvoice(subtotal) + ' BYN</span></div>' +
-        '<div class="row"><span class="lbl">НДС 20 %:</span><span class="val">' + fmtInvoice(vat) + ' BYN</span></div>' +
-        '<div class="grand"><span>ИТОГО с НДС:</span><span>' + fmtInvoice(total) + ' BYN</span></div>' +
-      '</div>' +
-      '<div class="pv-note">Всего наименований: ' + rows.length + ', на сумму ' + fmtInvoice(total) + ' BYN.</div>' +
-      '<div class="pv-contract">' +
-        '<div class="h">Счёт-договор поставки товара</div>' +
-        '<p><b>' + escapeHtml(company.name || '') + '</b>, именуемое далее «Поставщик», в лице ' + escapeHtml((company.directorPosition || '').toLowerCase()) + ' ' + escapeHtml(company.director || '') + ', действующего на основании Устава, с одной стороны, и <b>' + escapeHtml(buyer.bName || 'Покупатель') + '</b>, именуемое далее «Покупатель», в лице ' + buyerPosition + ' ' + buyerFio + ', действующего на основании ' + buyerBasis + ', с другой стороны, заключили настоящий договор о нижеследующем.</p>' +
-        '<div class="h2">1. Предмет договора</div>' +
-        '<p>1.1. Поставщик обязуется передать в собственность Покупателя, а Покупатель — принять и оплатить товар согласно спецификации, указанной в настоящем счёте-договоре.</p>' +
-        '<p>1.2. Качество товара соответствует требованиям нормативно-технической документации, действующей в Республике Беларусь.</p>' +
-        '<div class="h2">2. Сумма договора и порядок расчётов</div>' +
-        '<p>2.1. Общая сумма договора составляет <b>' + sumWords + '</b>, что соответствует <b>' + fmtInvoice(total) + ' BYN</b> с учётом НДС 20 %. Сумма НДС 20 % составляет <b>' + fmtInvoice(vat) + ' BYN</b>.</p>' +
-        '<p>2.2. ' + paymentClause + '</p>' +
-        '<div class="h2">3. Порядок поставки</div>' +
-        '<p>3.1. Поставка осуществляется: <b>' + escapeHtml(deliveryText) + '</b>.</p>' +
-        '<p>3.2. Срок поставки — <b>' + deal.days + ' ' + declOfNum(deal.days, ['день','дня','дней']) + '</b> с момента оплаты.</p>' +
-        '<p>3.3. Право собственности переходит к Покупателю в момент передачи товара и подписания ТТН/ТН.</p>' +
-        '<div class="h2">4. Ответственность сторон</div>' +
-        '<p>4.1. За неисполнение обязательств стороны несут ответственность в соответствии с законодательством Республики Беларусь.</p>' +
-        '<div class="h2">5. Срок действия и прочие условия</div>' +
-        '<p>5.1. Договор вступает в силу с момента подписания и действует до полного исполнения сторонами обязательств.</p>' +
-        '<p>5.2. Счёт действителен к оплате 14 календарных дней с даты выписки.</p>' +
-        '<p>5.3. Оплата счёта означает согласие Покупателя с условиями поставки.</p>' +
-        '<div class="sign">' +
-          '<div class="col"><b>Поставщик</b><div class="ln"></div><div>' + escapeHtml(company.directorPosition || '') + ' ' + escapeHtml(company.director || '') + '</div></div>' +
-          '<div class="col"><b>Покупатель</b><div class="ln"></div><div>&nbsp;</div></div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="pv-footer"><span>CUBICA.BY</span><span>' + escapeHtml(company.tagline || '') + ' · ' + escapeHtml(company.phone || '') + ' · ' + escapeHtml(company.email || '') + '</span><span>Спасибо за заказ!</span></div>' +
-    '</div>' +
-  '</div>';
+  // Идентично i5.24 renderPreview()
+  return `
+    <div class="preview-page">
+    <div class="pv-panel">
+      <div class="pv-logo-svg">${LOGO_SVG_COLOR}</div>
+      <div class="pv-panel-company">${escapeHtml(COMPANY.name)}</div>
+      <div class="pv-panel-req"><div>УНП: ${escapeHtml(COMPANY.unp)}</div><div>${escapeHtml(COMPANY.address)}</div></div>
+      <hr class="pv-sep">
+      <div class="pv-panel-req"><div>Р/с: ${escapeHtml(COMPANY.account)}</div><div>Банк: ${escapeHtml(COMPANY.bank)}</div><div>БИК: ${escapeHtml(COMPANY.bic)}</div></div>
+      <div class="pv-req-qr"><div class="box">${makeRequisitesQR()}</div><div class="meta"><b>Реквизиты в Word</b>Отсканируйте QR — бухгалтерия получит наши реквизиты в Word.<div class="sub">Для бухгалтера покупателя</div></div></div>
+      <div class="pv-side-contacts">
+        <div class="pv-side-title">Контакты</div>
+        <div class="pv-side-row"><span class="pv-side-ic">Т</span><span class="pv-side-val">${escapeHtml(COMPANY.phone)}<small>Телефон</small></span></div>
+        <div class="pv-side-row"><span class="pv-side-ic">@</span><span class="pv-side-val">${escapeHtml(COMPANY.email)}<small>E-mail</small></span></div>
+        <div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">${escapeHtml(COMPANY.site)}<small>Сайт</small></span></div>
+        <div class="pv-side-row"><span class="pv-side-ic">◉</span><span class="pv-side-val">${escapeHtml(COMPANY.site2)}<small>Сайт партнёра</small></span></div>
+      </div>
+      <div class="pv-hours"><span class="ic">⏱</span><span class="val">${escapeHtml(COMPANY.hours)}<small>Режим работы</small></span></div>
+      <div class="pv-side-bottom">
+        <div class="pv-nav-block">
+          <div class="pv-nav-title">Как забрать товар</div>
+          <div class="pv-nav-item"><div class="pv-nav-qr">${makeNaviQR(OFFICE_COORDS)}</div><div class="pv-nav-meta"><b>Шаг 1. Офис</b><div class="addr">Выписка ТТН / ТН</div><div class="sub">Колодищи, Минская 5<br>5 этаж, оф. 508</div></div></div>
+          <hr class="pv-nav-sep">
+          <div class="pv-nav-item"><div class="pv-nav-qr">${makeNaviQR(WAREHOUSE_COORDS)}</div><div class="pv-nav-meta"><b>Шаг 2. Склад</b><div class="addr">Армстронг</div><div class="sub">Отгрузка товара</div></div></div>
+        </div>
+        <div class="pv-issue"><div class="t1">Срок действия счёта</div><div class="addr">14 календарных дней</div><div class="sub">с даты выписки</div></div>
+      </div>
+      <div class="pv-panel-thanks"><div class="t1">Спасибо за заказ!</div><div class="t2">${escapeHtml(COMPANY.tagline)}</div></div>
+    </div>
+    <div class="pv-main">
+      <div class="pv-title">Счёт-договор</div>
+      <div class="pv-meta">№ ${escapeHtml(invNo)}<br>от ${invDate}</div>
+      <hr class="pv-hr">
+      <div class="pv-cust-label">ПОКУПАТЕЛЬ:</div>
+      <div class="pv-cust-line"><b>Наименование:</b> ${escapeHtml(bName)}<br><b>УНП:</b> ${escapeHtml(bUnp)}<br><b>Юридический адрес:</b> ${escapeHtml(bAddr)}<br><b>Р/с:</b> ${escapeHtml(bAcc)}<br><b>Банк:</b> ${escapeHtml(bBank)}</div>
+      <table class="pv-table"><thead><tr>
+        <th style="width:5%">№</th><th style="width:28%">Наименование</th><th style="width:9%">Кол-во</th><th style="width:5%">Ед.</th>
+        <th style="width:12%">Цена без НДС</th><th style="width:12%">Ст-ть без НДС</th><th style="width:6%">НДС</th><th style="width:11%">НДС сумма</th><th style="width:12%">Сумма с НДС</th>
+      </tr></thead><tbody>${rowsHtml}</tbody></table>
+      <div class="pv-totals">
+        <div class="row"><span class="lbl">Стоимость без НДС:</span><span class="val">${fmtInvoice(subtotal)} BYN</span></div>
+        <div class="row"><span class="lbl">НДС 20 %:</span><span class="val">${fmtInvoice(vat)} BYN</span></div>
+        <div class="grand"><span>ИТОГО с НДС:</span><span>${fmtInvoice(total)} BYN</span></div>
+      </div>
+      <div class="pv-note">Всего наименований: ${rows.length}, на сумму ${fmtInvoice(total)} BYN.</div>
+      <div class="pv-contract">
+        <div class="h">Счёт-договор поставки товара</div>
+        <p><b>${escapeHtml(COMPANY.name)}</b>, именуемое далее «Поставщик», в лице ${escapeHtml((COMPANY.directorPosition || '').toLowerCase())} ${escapeHtml(COMPANY.director || '')}, действующего на основании Устава, с одной стороны, и <b>${escapeHtml(buyer.bName || 'Покупатель')}</b>, именуемое далее «Покупатель», в лице ${buyerPosition} ${buyerFio}, действующего на основании ${buyerBasis}, с другой стороны, заключили настоящий договор о нижеследующем.</p>
+        <div class="h2">1. Предмет договора</div>
+        <p>1.1. Поставщик обязуется передать в собственность Покупателя, а Покупатель — принять и оплатить товар согласно спецификации, указанной в настоящем счёте-договоре.</p>
+        <p>1.2. Качество товара соответствует требованиям нормативно-технической документации, действующей в Республике Беларусь.</p>
+        <div class="h2">2. Сумма договора и порядок расчётов</div>
+        <p>2.1. Общая сумма договора составляет <b>${sumWords}</b>, что соответствует <b>${fmtInvoice(total)} BYN</b> с учётом НДС 20 %. Сумма НДС 20 % составляет <b>${fmtInvoice(vat)} BYN</b>.</p>
+        <p>2.2. ${paymentClause}</p>
+        <div class="h2">3. Порядок поставки</div>
+        <p>3.1. Поставка осуществляется: <b>${escapeHtml(deliveryText)}</b>.</p>
+        <p>3.2. Срок поставки — <b>${deal.days} ${declOfNum(deal.days, ['день','дня','дней'])}</b> с момента оплаты.</p>
+        <p>3.3. Право собственности переходит к Покупателю в момент передачи товара и подписания ТТН/ТН.</p>
+        ${unloadingClause}
+        <div class="h2">4. Ответственность сторон</div>
+        <p>4.1. За неисполнение обязательств стороны несут ответственность в соответствии с законодательством Республики Беларусь.</p>
+        <div class="h2">5. Срок действия и прочие условия</div>
+        <p>5.1. Договор вступает в силу с момента подписания и действует до полного исполнения сторонами обязательств.</p>
+        <p>5.2. Счёт действителен к оплате 14 календарных дней с даты выписки.</p>
+        <p>5.3. Оплата счёта означает согласие Покупателя с условиями поставки.</p>
+        <div class="sign">
+          <div class="col"><b>Поставщик</b><div class="ln"></div><div>${escapeHtml(COMPANY.directorPosition || '')} ${escapeHtml(COMPANY.director || '')}</div></div>
+          <div class="col"><b>Покупатель</b><div class="ln"></div><div>&nbsp;</div></div>
+        </div>
+      </div>
+      <div class="pv-footer"><span>CUBICA.BY</span><span>${escapeHtml(COMPANY.tagline)} · ${escapeHtml(COMPANY.phone)} · ${escapeHtml(COMPANY.email)}</span><span>Спасибо за заказ!</span></div>
+    </div>
+    </div>`;
 }
 
 async function downloadInvoicePdf(kp){
@@ -1157,11 +1210,13 @@ async function downloadInvoicePdf(kp){
   if(!target){ alert('Не удалось построить счёт'); return; }
 
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Дополнительная пауза — даём SVG QR-кодам отрисоваться
+  await new Promise(r => setTimeout(r, 120));
 
   let canvas;
   try{
     canvas = await window.html2canvas(target, {
-      scale: 3,
+      scale: 2,
       backgroundColor: '#ffffff',
       useCORS: true,
       logging: false,
@@ -1177,27 +1232,15 @@ async function downloadInvoicePdf(kp){
   }
 
   const imgData = canvas.toDataURL('image/png');
-  const PW = 210, PH = 297;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  const imgW = PW;
-  const imgH = PW * (canvas.height / canvas.width);
+  const PW = 210, MARGIN = 8;
+  const imgW = PW - MARGIN*2;
+  const imgH = imgW * (canvas.height / canvas.width);
+  doc.addImage(imgData, 'PNG', MARGIN, MARGIN, imgW, imgH, undefined, 'FAST');
 
-  if(imgH <= PH + 0.5){
-    doc.addImage(imgData, 'PNG', 0, 0, imgW, imgH, undefined, 'FAST');
-  } else {
-    let y = 0, remaining = imgH, firstPage = true;
-    while(remaining > 0){
-      if(!firstPage) doc.addPage();
-      firstPage = false;
-      doc.addImage(imgData, 'PNG', 0, y, imgW, imgH, undefined, 'FAST');
-      remaining -= PH;
-      y -= PH;
-    }
-  }
-
-  const invNo = 'СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'');
-  doc.save('CUBICA_' + invNo + '.pdf');
+  const safeNo = String(kp.invoiceNumber || '').replace(/[^\w\-]/g,'');
+  doc.save('CUBICA_' + (safeNo || 'invoice') + '.pdf');
 }
 
 /* ==================== РЕНДЕР КП ==================== */
