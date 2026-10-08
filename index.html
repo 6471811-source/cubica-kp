@@ -169,7 +169,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 @media print{.kp-3d,.kp-room-3d,.kp-actions,.kp-bg,#splash{display:none!important}.kp-section{opacity:1!important;transform:none!important;page-break-inside:avoid}.kp-rooms-scroller{overflow:visible;flex-wrap:wrap}}
 
 /* ============================================================
-   СЧЁТ-ДОГОВОР — 1:1 копия из i5.24
+   СЧЁТ-ДОГОВОР
    ============================================================ */
 .invoice-render-host{position:fixed;left:-99999px;top:0;width:760px;height:1074px;overflow:hidden;pointer-events:none;z-index:-1}
 .invoice-render-host .preview-page{
@@ -333,51 +333,27 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 
 <div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
 
-<!-- ===================================================================
-     ЗАСТАВКА — вынесена в обычный скрипт, работает даже если Three.js упадёт
-     =================================================================== -->
-<script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ==================== ЗАСТАВКА ==================== */
 (function(){
-  function tryPlay(){
-    var svg = document.getElementById('logoSvg');
-    var splash = document.getElementById('splash');
-    if(!svg || !splash) return;
-    if(svg.dataset.played === '1') return;
-    svg.dataset.played = '1';
+  var svg = document.getElementById('logoSvg');
+  var splash = document.getElementById('splash');
+  var played = false;
+  function play(){
+    if(played) return;
+    played = true;
     svg.classList.add('play');
     setTimeout(function(){
       splash.classList.add('hide');
       setTimeout(function(){ splash.style.display = 'none'; }, 900);
     }, 5200);
   }
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){
-      requestAnimationFrame(function(){ requestAnimationFrame(tryPlay); });
-    });
-  } else {
-    requestAnimationFrame(function(){ requestAnimationFrame(tryPlay); });
-  }
-  setTimeout(tryPlay, 1500);
-  /* Аварийный разблок: если что-то пойдёт не так — снять заставку через 8 сек */
-  setTimeout(function(){
-    var sp = document.getElementById('splash');
-    if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
-  }, 8000);
+  requestAnimationFrame(function(){ requestAnimationFrame(play); });
+  setTimeout(function(){ if(!played) play(); }, 1000);
 })();
-</script>
-
-<script type="module">
-/* ===================================================================
-   Three.js грузим ДИНАМИЧЕСКИ — если CDN недоступен, KP всё равно отрисуется
-   =================================================================== */
-let THREE = null, OrbitControls = null;
-try {
-  THREE = await import('three');
-  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
-  console.log('[KP] Three.js OK, r' + THREE.REVISION);
-} catch(e){
-  console.warn('[KP] Three.js недоступен, 3D-модели будут отключены:', e);
-}
 
 /* ==================== ЛОГОТИП ДЛЯ ШАПКИ ==================== */
 function kpHeaderLogoSvg(){
@@ -443,6 +419,10 @@ function b64dec(s){
     return new TextDecoder('utf-8').decode(bytes);
   } catch(e){ console.error('b64dec error:', e); return null; }
 }
+function b64enc(s){
+  return btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
@@ -477,7 +457,7 @@ function sumToWordsRU(total){
   return rubStr.charAt(0).toUpperCase()+rubStr.slice(1)+' '+rubForm+' '+kopStr+' '+kopForm;
 }
 
-/* ==================== КОНСТАНТЫ PDF-СЧЁТА (i5) ==================== */
+/* ==================== КОНСТАНТЫ PDF-СЧЁТА ==================== */
 const COMPANY_FALLBACK = {
   name:'ООО «ВК ТЕРМ»',
   address:'РБ, 223051, Минская обл., Минский р-н, аг. Колодищи, ул. Минская, д. 5, пом. 107-4',
@@ -499,6 +479,7 @@ const COMPANY_FALLBACK = {
 const REQUISITES_URL = 'https://6471811-source.github.io/cubica-requisites/requisites.docx';
 const OFFICE_COORDS    = { lat: 53.955161, lon: 27.778077 };
 const WAREHOUSE_COORDS = { lat: 53.945140, lon: 27.741913 };
+const SHORT_URL        = 'https://cubica-kp-15ab.6471811.workers.dev';
 
 const LOGO_SVG_COLOR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110"><defs><linearGradient id="cgpdf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e10004"/><stop offset="100%" stop-color="#a50003"/></linearGradient></defs><g fill="url(#cgpdf)" transform="translate(6,10)"><polygon points="0,20 22,0 34,0 12,20"/><polygon points="0,30 30,4 42,4 12,30"/><polygon points="8,50 55,4 67,4 20,50"/><polygon points="8,60 80,0 92,0 20,60"/><polygon points="8,70 100,0 112,0 20,70"/><polygon points="20,90 90,20 102,20 32,90"/><polygon points="35,90 105,20 117,20 47,90"/><polygon points="50,90 110,32 122,32 62,90"/><polygon points="65,90 115,42 127,42 77,90"/></g><text x="145" y="55" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="44" fill="#000">CUBICA</text><text x="147" y="78" font-family="Calibri,Arial,sans-serif" font-size="15" fill="#5f6a69">modern ceiling solutions</text></svg>`;
 const QR_STUB = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><rect width="29" height="29" fill="#fff"/><g fill="#1a1a1a"><rect x="0" y="0" width="7" height="7"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3"/><rect x="22" y="0" width="7" height="7"/><rect x="23" y="1" width="5" height="5" fill="#fff"/><rect x="24" y="2" width="3" height="3"/><rect x="0" y="22" width="7" height="7"/><rect x="1" y="23" width="5" height="5" fill="#fff"/><rect x="2" y="24" width="3" height="3"/></g></svg>`;
@@ -678,31 +659,22 @@ function kpBuild2DScheme(layout, railHex){
   svg += '</g>';
   if(polygon){
     svg += '<polygon points="'+polygon.map(p=>(ox+p[0]*s).toFixed(2)+','+(oy+p[1]*s).toFixed(2)).join(' ')+'" fill="none" stroke="#c49a6c" stroke-width="2.5"/>';
-    // ===== ПОДПИСИ СТОРОН ПОЛИГОНА =====
-    // Подпись ставится по перпендикуляру к стороне, направленному НАРУЖУ полигона.
-    // Направление «наружу» определяется тестовой точкой через pointInPoly.
-    // Это гарантирует, что для непрямоугольных помещений подпись не «наедет» на площадь.
     if(polygon.length >= 3){
       for(let i = 0; i < polygon.length; i++){
         const a = polygon[i], b = polygon[(i+1) % polygon.length];
         const sideLen = Math.round(Math.hypot(b[0]-a[0], b[1]-a[1]));
-        if(sideLen < 30) continue; // слишком короткие стороны не подписываем
+        if(sideLen < 30) continue;
         const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
         const px = ox + mx*s, py = oy + my*s;
         let ang = Math.atan2((b[1]-a[1])*s, (b[0]-a[0])*s) * 180/Math.PI;
         if(ang > 90) ang -= 180;
         if(ang < -90) ang += 180;
-
-        // Перпендикуляр к стороне в мировых координатах
         const edx = b[0]-a[0], edy = b[1]-a[1];
         const elen = Math.hypot(edx, edy) || 1;
         let nX = -edy/elen, nY = edx/elen;
-        // Проверяем, куда направлен нормаль — «внутрь» или «наружу»
         const testX = mx + nX * 60;
         const testY = my + nY * 60;
         if (pointInPoly(polygon, testX, testY)) { nX = -nX; nY = -nY; }
-
-        // Отступ от стороны (в пикселях, направление в world совпадает с направлением в screen)
         const OFF = 30;
         const tx = px + nX * OFF;
         const ty = py + nY * OFF;
@@ -744,7 +716,6 @@ function kpBuild2DScheme(layout, railHex){
 /* ==================== ТЕКСТУРЫ ==================== */
 const TEX_CACHE = {};
 function makeWoodTexture(name){
-  if(!THREE) return null;
   if(TEX_CACHE[name]) return TEX_CACHE[name];
   const p = WOOD_COLORS[name] || WOOD_COLORS.denver;
   const {base,dark,opts} = p;
@@ -779,13 +750,6 @@ function makeWoodTexture(name){
 
 /* ==================== 3D ==================== */
 function kpInit3D(room, layout, container){
-  /* Если Three.js не загрузился — показываем заглушку, а не падаем */
-  if(!THREE || !OrbitControls){
-    if(container){
-      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9aa8b5;font-size:13px;text-align:center;padding:20px;line-height:1.5">3D-модель недоступна<br><span style="font-size:11.5px;color:#c5ced6">Не удалось загрузить Three.js с CDN</span></div>';
-    }
-    return null;
-  }
   if(!container || !container.clientWidth || !container.clientHeight){
     setTimeout(()=>kpInit3D(room, layout, container), 150);
     return null;
@@ -971,10 +935,8 @@ function normalizeKpMulti(raw){
   kp.area = num(kp.area, 0);
   if(kp.area <= 0) kp.area = (kp.L_in * kp.W_in) / 1e6;
 
-  // Invoice number
   kp.invoiceNumber = kp.invoiceNumber || ('СЧ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-001');
 
-  // Deal и Buyer с fallback
   kp.deal = kp.deal && typeof kp.deal === 'object' ? {
     delivery: String(kp.deal.delivery || 'pickup'),
     payment: num(kp.deal.payment, 100),
@@ -1094,7 +1056,7 @@ function buildRoomsSectionHtml(kp){
 function getValidUntil(){ const d = new Date(); d.setDate(d.getDate()+10); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
 
 /* ============================================================
-   СЧЁТ-ДОГОВОР — точная копия renderPreview() из i5.24
+   СЧЁТ-ДОГОВОР — генерация PDF
    ============================================================ */
 function buildInvoiceHtml(kp){
   const COMPANY = Object.assign({}, COMPANY_FALLBACK, kp.company || {});
@@ -1439,28 +1401,55 @@ function renderKp(kp){
 }
 
 /* ==================== INIT ==================== */
-function init(){
-  let payload = null;
+async function init(){
+  let raw = null;
+
   try{
     const sp = new URLSearchParams(location.search);
-    if(sp.has('kp')) payload = sp.get('kp');
-  } catch(e){}
-  if(!payload){
-    document.getElementById('kp-content').innerHTML =
-      '<div class="kp-empty"><h2>Нет данных для КП</h2><p>Откройте эту страницу по кнопке «Сформировать ссылку для клиента» в счёте.</p></div>';
-    return;
-  }
-  let raw;
-  try{
-    const json = b64dec(payload);
-    if(!json) throw new Error('Не удалось декодировать base64');
-    raw = JSON.parse(json);
+
+    // Вариант 1: короткая ссылка /?s=ID — данные берём с Cloudflare Worker
+    if(sp.has('s')){
+      const id = sp.get('s');
+      console.log('[KP] Загружаем короткую ссылку:', id);
+      try{
+        const r = await fetch(SHORT_URL + '/s/' + encodeURIComponent(id));
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        const b64url = (await r.text()).trim();
+        if(!b64url) throw new Error('Пустой ответ от сервиса');
+        const json = b64dec(b64url);
+        if(!json) throw new Error('Не удалось декодировать base64');
+        raw = JSON.parse(json);
+        console.log('[KP] ✓ Данные получены, длина JSON:', json.length);
+      } catch(e){
+        console.error('[KP] Ошибка загрузки короткой ссылки:', e);
+        document.getElementById('kp-content').innerHTML =
+          '<div class="kp-empty"><h2>Не удалось загрузить КП</h2>' +
+          '<p style="font-size:13px;color:#c49a6c">' + escapeHtml(e.message) + '</p>' +
+          '<p style="font-size:12px;color:#9aa8b5;margin-top:12px">Возможно, ссылка устарела или потерялась при пересылке.</p></div>';
+        return;
+      }
+    }
+    // Вариант 2: длинная ссылка /?kp=BASE64
+    else if(sp.has('kp')){
+      const payload = sp.get('kp');
+      const json = b64dec(payload);
+      if(!json) throw new Error('Не удалось декодировать base64');
+      raw = JSON.parse(json);
+    }
   } catch(e){
     console.error('[CUBICA] decode/parse error:', e);
     document.getElementById('kp-content').innerHTML =
       '<div class="kp-empty"><h2>Ошибка чтения КП</h2><p>'+escapeHtml(e.message)+'</p></div>';
     return;
   }
+
+  if(!raw){
+    document.getElementById('kp-content').innerHTML =
+      '<div class="kp-empty"><h2>Нет данных для КП</h2>' +
+      '<p>Откройте эту страницу по кнопке «Сформировать ссылку для клиента» в счёте.</p></div>';
+    return;
+  }
+
   let kp;
   try{ kp = normalizeKpMulti(raw); }
   catch(e){
@@ -1474,36 +1463,6 @@ function init(){
   console.groupEnd();
   renderKp(kp);
 }
-
-/* ==================== ГЛОБАЛЬНЫЙ ПЕРЕХВАТ ОШИБОК ==================== */
-window.addEventListener('error', function(ev){
-  console.error('[KP FATAL]', ev.error || ev.message);
-  var content = document.getElementById('kp-content');
-  if(content && content.querySelector('.kp-empty')){
-    content.innerHTML = '<div class="kp-empty"><h2>Ошибка загрузки КП</h2>' +
-      '<p style="font-size:13px;color:#c49a6c;word-break:break-word">' +
-      (ev.error && ev.error.message ? ev.error.message : ev.message || 'Неизвестная ошибка') +
-      '</p><p style="font-size:12px;color:#9aa8b5;margin-top:12px">' +
-      'Обновите страницу (Ctrl+F5). Если не поможет — откройте F12 → Console.</p></div>';
-  }
-  var sp = document.getElementById('splash');
-  if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
-});
-
-/* Если через 10 секунд контент всё ещё "Загрузка..." — значит модуль не отработал */
-setTimeout(function(){
-  var content = document.getElementById('kp-content');
-  if(content && content.querySelector('.kp-empty h2') &&
-     content.querySelector('.kp-empty h2').textContent.includes('Загрузка')){
-    content.innerHTML = '<div class="kp-empty"><h2>Не удалось запустить КП</h2>' +
-      '<p style="font-size:13px;color:#c49a6c">Скрипт не выполнился. Откройте F12 → Console и пришлите ошибки.</p>' +
-      '<p style="font-size:12px;color:#9aa8b5;margin-top:10px">Частая причина: не загрузился Three.js с unpkg.com. ' +
-      'Попробуйте другой браузер или VPN.</p></div>';
-    var sp = document.getElementById('splash');
-    if(sp){ sp.classList.add('hide'); setTimeout(function(){ sp.style.display='none'; }, 900); }
-  }
-}, 10000);
-
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 </script>
 </body>
