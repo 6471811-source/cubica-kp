@@ -122,6 +122,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-room-rows .row:last-child{border-bottom:none}
 .kp-room-rows .label{color:#2c3e50;flex:1}
 .kp-room-rows .locked{color:#9aa8b5;font-weight:600;font-style:italic;white-space:nowrap;font-size:11.5px}
+  .kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
 .kp-rooms-nav{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
 .kp-rooms-nav .dot{width:10px;height:10px;border-radius:50%;background:rgba(196,154,108,.3);cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0}
 .kp-rooms-nav .dot.active{background:#c49a6c;transform:scale(1.3)}
@@ -899,26 +900,19 @@ function buildRoomStatsHtml(room, layout){
   return h;
 }
 
-function buildRoomRowsHtml(room, layout){
+function buildRoomRowsHtml(room, layout, paid){
   if(!room.rows || !room.rows.length){
     return '<div style="text-align:center;color:#9aa8b5;padding:8px 0">Нет позиций</div>';
   }
-  const railGroups = new Map();
-  const otherRows = [];
-  for(const r of room.rows){
-    if(isRailRow(r)){
-      const key = normalizeRailLabel(r.label) || ('Рейка ' + layout.railW + '×' + layout.railH);
-      railGroups.set(key, (railGroups.get(key)||0) + 1);
-    } else {
-      otherRows.push(r);
-    }
-  }
   let html = '';
-  for(const [label] of railGroups){
-    html += '<div class="row"><span class="label">'+escapeHtml(label)+'</span><span class="locked">После оплаты 🔒</span></div>';
-  }
-  for(const r of otherRows){
-    html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span><span class="locked">После оплаты 🔒</span></div>';
+  for(const r of room.rows){
+    const qty = num(r.qty, 0);
+    const unit = r.unit || 'шт.';
+    const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
+    const right = paid
+      ? '<span class="value">'+qtyStr+' '+escapeHtml(unit)+'</span>'
+      : '<span class="locked">После оплаты 🔒</span>';
+    html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
   }
   return html;
 }
@@ -1039,7 +1033,7 @@ function buildRoomsSectionHtml(kp){
         '<div class="kp-room-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
         '<div class="kp-room-3d" data-room-3d="0"></div>'+
         '<div class="kp-room-2d">'+kpBuild2DScheme(layout, railHex)+'</div>'+
-        '<div class="kp-room-rows"><div class="title">Спецификация помещения</div>'+buildRoomRowsHtml(room, layout)+'</div>'+
+        '<div class="kp-room-rows"><div class="title">Спецификация помещения</div>'+buildRoomRowsHtml(room, layout, kp.paid)+'</div>'+
       '</div>'+
     '</div>';
   }
@@ -1053,7 +1047,7 @@ function buildRoomsSectionHtml(kp){
         '<div class="kp-room-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
         '<div class="kp-room-3d" data-room-3d="'+i+'"></div>'+
         '<div class="kp-room-2d">'+kpBuild2DScheme(layout, railHex)+'</div>'+
-        '<div class="kp-room-rows"><div class="title">Спецификация помещения</div>'+buildRoomRowsHtml(room, layout)+'</div>'+
+        '<div class="kp-room-rows"><div class="title">Спецификация помещения</div>'+buildRoomRowsHtml(room, layout, kp.paid)+'</div>'+
       '</div>';
   });
   let dots = '';
