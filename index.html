@@ -904,9 +904,74 @@ function buildRoomRowsHtml(room, layout, paid){
   if(!room.rows || !room.rows.length){
     return '<div style="text-align:center;color:#9aa8b5;padding:8px 0">Нет позиций</div>';
   }
+
+  /* ★ ПРАВКА: до оплаты — группируем рейки в одну строку м.п. без длин.
+     После оплаты — показываем как есть (с длинами и "(объединено)"). */
+  let renderRows;
+  if(!paid){
+    /* Группируем рейки по имени без длины */
+    const railGroups = {};      // { "Рейка Cubica 50/50 Denver": { qtyMp: 16.0 }, ... }
+    const otherRows = [];
+    const order = [];
+
+    for(const r of room.rows){
+      const label = String(r.label || '');
+      const unit = r.unit || 'шт.';
+      const qty = num(r.qty, 0);
+
+      /* Рейки определяем по unit "м.п." или по регулярке на "Рейка Cubica ... NNNN мм" */
+      let isRail = false;
+      let railKey = label;
+      let sizeMm = 0;
+
+      if(unit === 'м.п.' || unit === 'mp'){
+        isRail = true;
+      } else {
+        const cleanLabel = label.replace(/\s*\(объединено\)\s*$/i, '').trim();
+        const m = cleanLabel.match(/^Рейка Cubica (.+?)\s+(\d+)\s*мм$/);
+        if(m){
+          isRail = true;
+          railKey = 'Рейка Cubica ' + m[1];
+          sizeMm = parseInt(m[2], 10);
+        }
+      }
+
+      if(isRail){
+        /* Считаем м.п.: если unit уже м.п. — qty это м.п., иначе qty * size / 1000 */
+        let mp;
+        if(unit === 'м.п.' || unit === 'mp'){
+          mp = qty;
+        } else {
+          mp = qty * sizeMm / 1000;
+        }
+        if(!railGroups[railKey]){ railGroups[railKey] = 0; order.push(railKey); }
+        railGroups[railKey] += mp;
+      } else {
+        otherRows.push({ label: label, qty: qty, unit: unit });
+      }
+    }
+
+    /* Собираем: сначала все рейки в м.п., потом остальное */
+    renderRows = [];
+    for(const key of order){
+      renderRows.push({ label: key, qty: Math.round(railGroups[key] * 100) / 100, unit: 'м.п.' });
+    }
+    for(const r of otherRows){
+      renderRows.push(r);
+    }
+  } else {
+    /* После оплаты — как есть */
+    renderRows = room.rows.map(r => ({
+      label: r.label,
+      qty: num(r.qty, 0),
+      unit: r.unit || 'шт.',
+      pieces: r.pieces
+    }));
+  }
+
   let html = '';
-  for(const r of room.rows){
-    const qty = num(r.qty, 0);
+  for(const r of renderRows){
+    const qty = r.qty;
     const unit = r.unit || 'шт.';
     const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
     const right = paid
