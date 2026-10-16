@@ -1611,6 +1611,7 @@ async function init(){
   console.group('[CUBICA] Парсинг payload');
   console.log('rooms =', kp.rooms.length, 'rows =', kp.rows.length, 'price =', kp.price, 'areaTotal =', kp.areaTotal);
   console.groupEnd();
+  window.__kp = kp;   /* ★ временный дебаг — потом удалить */
   renderKp(kp);
 }
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
