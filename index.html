@@ -123,6 +123,14 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-room-rows .label{color:#2c3e50;flex:1}
 .kp-room-rows .locked{color:#9aa8b5;font-weight:600;font-style:italic;white-space:nowrap;font-size:11.5px}
   .kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
+  /* ★ ПРАВКА 6: стили схемы нарезки объединённых реек в карточке помещения */
+.kp-cutting{margin:6px 0 10px;padding:10px 14px;background:#f1f8e9;border:1px solid #c5e1a5;border-radius:6px;font-size:11.5px;color:#2e7d32;line-height:1.6}
+.kp-cutting-title{font-weight:800;margin-bottom:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
+.kp-cutting-row{display:flex;gap:6px;align-items:center;margin-bottom:3px;flex-wrap:wrap}
+.kp-cutting-bar{display:inline-flex;height:16px;border-radius:3px;overflow:hidden;background:#fff;border:1px solid #c5e1a5;min-width:60px;width:160px}
+.kp-cutting-piece{display:inline-block;height:100%;border-right:1px solid #fff;background:#66bb6a}
+.kp-cutting-piece.waste{background:#ffab91}
+.kp-cutting-meta{font-family:Consolas,'Courier New',monospace;font-size:10.5px;color:#555}
 .kp-rooms-nav{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
 .kp-rooms-nav .dot{width:10px;height:10px;border-radius:50%;background:rgba(196,154,108,.3);cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0}
 .kp-rooms-nav .dot.active{background:#c49a6c;transform:scale(1.3)}
@@ -978,7 +986,43 @@ function buildRoomRowsHtml(room, layout, paid){
       ? '<span class="value">'+qtyStr+' '+escapeHtml(unit)+'</span>'
       : '<span class="locked">После оплаты 🔒</span>';
     html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
+
+    /* ★ ПРАВКА 5.2: после оплаты под объединённой рейкой рисуем схему нарезки */
+    if(paid
+       && /\(объединено\)/i.test(r.label)
+       && room.cuttingScheme
+       && Array.isArray(room.cuttingScheme.scheme)
+       && room.cuttingScheme.scheme.length){
+      html += renderCuttingSchemeKp(room.cuttingScheme.scheme, room.cuttingScheme.refSize);
+    }
   }
+  return html;
+}
+
+/* ★ ПРАВКА 5.1: рендер схемы нарезки объединённых реек — полоски как в калькуляторе */
+function renderCuttingSchemeKp(scheme, targetLen){
+  const L = num(targetLen, 0) || 1;
+  let html = '<div class="kp-cutting">';
+  html += '<div class="kp-cutting-title">Схема нарезки — рейки по ' + L + ' мм</div>';
+  for(let i = 0; i < scheme.length; i++){
+    const s = scheme[i];
+    html += '<div class="kp-cutting-row">';
+    html += '<span class="kp-cutting-meta">#' + (i+1) + ':</span>';
+    html += '<span class="kp-cutting-bar">';
+    for(const item of s.items){
+      const w = (item / L) * 100;
+      html += '<span class="kp-cutting-piece" style="width:' + w.toFixed(2) + '%" title="' + item + ' мм"></span>';
+    }
+    if(s.waste > 0){
+      const w = (s.waste / L) * 100;
+      html += '<span class="kp-cutting-piece waste" style="width:' + w.toFixed(2) + '%" title="отход ' + s.waste + ' мм"></span>';
+    }
+    html += '</span>';
+    const parts = s.items.join(' + ');
+    html += '<span class="kp-cutting-meta">' + parts + (s.waste > 0 ? ' (отход ' + s.waste + ' мм)' : '') + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
   return html;
 }
 
@@ -1054,6 +1098,26 @@ kp.paidAt = raw.paidAt || null;
         polygon: null,
         rows: []
       };
+        /* ★ ПРАВКА 4: читаем схему нарезки объединённых реек, если она пришла */
+  if(r.cuttingScheme && typeof r.cuttingScheme === 'object' && Array.isArray(r.cuttingScheme.scheme)){
+    room.cuttingScheme = {
+      refSize: num(r.cuttingScheme.refSize, 0),
+      extraQty: num(r.cuttingScheme.extraQty, 0),
+      waste: num(r.cuttingScheme.waste, 0),
+      wastePct: num(r.cuttingScheme.wastePct, 0),
+      scheme: r.cuttingScheme.scheme
+        .filter(s => s && Array.isArray(s.items))
+        .map(s => ({
+          items: s.items.map(x => num(x, 0)).filter(x => x > 0),
+          used: num(s.used, 0),
+          waste: num(s.waste, 0)
+        }))
+        .filter(s => s.items.length > 0)
+    };
+    if(!room.cuttingScheme.scheme.length) room.cuttingScheme = null;
+  } else {
+    room.cuttingScheme = null;
+  }
       if(Array.isArray(r.polygon) && r.polygon.length >= 3){
         const poly = r.polygon.filter(p => Array.isArray(p) && p.length >= 2)
           .map(p => [Number(p[0]), Number(p[1])])
