@@ -637,7 +637,7 @@ function recalcLayout(room){
     }
     perStringerSegments.push({x:gx, origX:gx, segs:strSegList, hangers});
   }
-  return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon};
+return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon, showRailLengths: !!room._showRailLengths};
 }
 
 /* ==================== 2D ==================== */
@@ -658,11 +658,37 @@ function kpBuild2DScheme(layout, railHex){
   else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';
   svg += '</clipPath></defs>';
   svg += '<g clip-path="url(#'+uid+')">';
-  for(const rseg of layout.perRailSegments){
-    const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
-    const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
-    svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="'+railHex+'" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
+for(const rseg of layout.perRailSegments){
+  const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
+  const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
+  svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="'+railHex+'" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
+
+  /* ★ ПРАВКА 1+2: после оплаты — длины кусков и жёлтые кружки на стыках */
+  if(layout.showRailLengths && Array.isArray(rseg.pieces)){
+    const deg = Math.atan2(sy1-sy0, sx1-sx0) * 180/Math.PI;
+    let acc = 0;
+    for(let i = 0; i < rseg.pieces.length; i++){
+      const piece = rseg.pieces[i];
+      const t0 = acc/rseg.len, t1 = (acc+piece)/rseg.len;
+      const cxa = sx0+(sx1-sx0)*t0, cya = sy0+(sy1-sy0)*t0;
+      const cxb = sx0+(sx1-sx0)*t1, cyb = sy0+(sy1-sy0)*t1;
+      const mx = (cxa+cxb)/2, my = (cya+cyb)/2;
+
+      /* ★ ПРАВКА 2: жёлтый кружок на стыке (между кусками) */
+      if(i < rseg.pieces.length - 1){
+        svg += '<circle cx="'+cxb.toFixed(2)+'" cy="'+cyb.toFixed(2)+'" r="3.5" fill="#ffd54f" stroke="#333" stroke-width="1"/>';
+      }
+
+      /* ★ ПРАВКА 1: длина куска, если кусок достаточно длинный на экране */
+      if(Math.hypot(cxb-cxa, cyb-cya) > 14){
+        svg += '<g transform="translate('+mx.toFixed(1)+','+my.toFixed(1)+') rotate('+deg.toFixed(2)+')">';
+        svg += '<text text-anchor="middle" font-size="9" font-weight="700" fill="#1a1a2e" style="paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round;">'+piece+'</text>';
+        svg += '</g>';
+      }
+      acc += piece;
+    }
   }
+}
   for(const sseg of layout.perStringerSegments){
     for(const sg of sseg.segs){
       const sx0 = ox+sg.x0*s, sy0 = oy+sg.y0*s;
@@ -1154,7 +1180,8 @@ kp.paidAt = raw.paidAt || null;
 function buildRoomsSectionHtml(kp){
   if(kp.rooms.length <= 1){
     const room = kp.rooms[0];
-    const layout = recalcLayout(room);
+    room._showRailLengths = !!kp.paid;   // ★ флаг
+    const layout = recalcLayout(room);   // ← ЗДЕСЬ
     const railHex = getRailHex(room.color);
     return '<div class="kp-section kp-observable">'+
       '<h2 class="kp-sec-title"><span class="kp-sec-num">2</span>Помещение</h2>'+
@@ -1167,8 +1194,9 @@ function buildRoomsSectionHtml(kp){
     '</div>';
   }
   let cards = '';
-  kp.rooms.forEach((room, i) => {
-    const layout = recalcLayout(room);
+kp.rooms.forEach((room, i) => {
+  room._showRailLengths = !!kp.paid;   // ★ флаг
+  const layout = recalcLayout(room);   // ← ЗДЕСЬ
     const railHex = getRailHex(room.color);
     cards +=
       '<div class="kp-room-card has-badge" data-room-idx="'+i+'">'+
