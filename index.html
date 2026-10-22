@@ -122,8 +122,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-room-rows .row:last-child{border-bottom:none}
 .kp-room-rows .label{color:#2c3e50;flex:1}
 .kp-room-rows .locked{color:#9aa8b5;font-weight:600;font-style:italic;white-space:nowrap;font-size:11.5px}
-  .kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
-  /* ★ ПРАВКА 6: стили схемы нарезки объединённых реек в карточке помещения */
+.kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
 .kp-cutting{margin:6px 0 10px;padding:10px 14px;background:#f1f8e9;border:1px solid #c5e1a5;border-radius:6px;font-size:11.5px;color:#2e7d32;line-height:1.6}
 .kp-cutting-title{font-weight:800;margin-bottom:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
 .kp-cutting-row{display:flex;gap:6px;align-items:center;margin-bottom:3px;flex-wrap:wrap}
@@ -254,7 +253,6 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .pv-footer span:first-child{color:#e10004;font-weight:800}
 .pv-footer span:last-child{color:#e10004}
 .pv-logo-color{width:100%;height:auto;display:block;margin-bottom:14px}
-  /* Раскрой реек — показывается после оплаты */
 .kp-pieces-row td { border-bottom: 1px solid rgba(196,154,108,.1); padding-top: 0 !important; padding-bottom: 12px !important; }
 .kp-pieces-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; background: rgba(196,154,108,.06); border-left: 3px solid #c49a6c; border-radius: 6px; font-size: 12px; }
 .kp-pieces-label { font-weight: 700; color: #c49a6c; text-transform: uppercase; letter-spacing: .5px; font-size: 10.5px; }
@@ -348,7 +346,8 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 <div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
 
 <script type="module">
-import * as THREE from 'three';
+// НАЧАЛО JS
+  import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ==================== ЗАСТАВКА ==================== */
@@ -663,7 +662,6 @@ for(const rseg of layout.perRailSegments){
   const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
   svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="'+railHex+'" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
 
-  /* ★ ПРАВКА 1+2: после оплаты — длины кусков и жёлтые кружки на стыках */
   if(layout.showRailLengths && Array.isArray(rseg.pieces)){
     const deg = Math.atan2(sy1-sy0, sx1-sx0) * 180/Math.PI;
     let acc = 0;
@@ -674,12 +672,10 @@ for(const rseg of layout.perRailSegments){
       const cxb = sx0+(sx1-sx0)*t1, cyb = sy0+(sy1-sy0)*t1;
       const mx = (cxa+cxb)/2, my = (cya+cyb)/2;
 
-      /* ★ ПРАВКА 2: жёлтый кружок на стыке (между кусками) */
       if(i < rseg.pieces.length - 1){
         svg += '<circle cx="'+cxb.toFixed(2)+'" cy="'+cyb.toFixed(2)+'" r="3.5" fill="#ffd54f" stroke="#333" stroke-width="1"/>';
       }
 
-      /* ★ ПРАВКА 1: длина куска, если кусок достаточно длинный на экране */
       if(Math.hypot(cxb-cxa, cyb-cya) > 14){
         svg += '<g transform="translate('+mx.toFixed(1)+','+my.toFixed(1)+') rotate('+deg.toFixed(2)+')">';
         svg += '<text text-anchor="middle" font-size="9" font-weight="700" fill="#1a1a2e" style="paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round;">'+piece+'</text>';
@@ -939,12 +935,9 @@ function buildRoomRowsHtml(room, layout, paid){
     return '<div style="text-align:center;color:#9aa8b5;padding:8px 0">Нет позиций</div>';
   }
 
-  /* ★ ПРАВКА: до оплаты — группируем рейки в одну строку м.п. без длин.
-     После оплаты — показываем как есть (с длинами и "(объединено)"). */
   let renderRows;
   if(!paid){
-    /* Группируем рейки по имени без длины */
-    const railGroups = {};      // { "Рейка Cubica 50/50 Denver": { qtyMp: 16.0 }, ... }
+    const railGroups = {};
     const otherRows = [];
     const order = [];
 
@@ -953,7 +946,6 @@ function buildRoomRowsHtml(room, layout, paid){
       const unit = r.unit || 'шт.';
       const qty = num(r.qty, 0);
 
-      /* Рейки определяем по unit "м.п." или по регулярке на "Рейка Cubica ... NNNN мм" */
       let isRail = false;
       let railKey = label;
       let sizeMm = 0;
@@ -971,7 +963,6 @@ function buildRoomRowsHtml(room, layout, paid){
       }
 
       if(isRail){
-        /* Считаем м.п.: если unit уже м.п. — qty это м.п., иначе qty * size / 1000 */
         let mp;
         if(unit === 'м.п.' || unit === 'mp'){
           mp = qty;
@@ -985,7 +976,6 @@ function buildRoomRowsHtml(room, layout, paid){
       }
     }
 
-    /* Собираем: сначала все рейки в м.п., потом остальное */
     renderRows = [];
     for(const key of order){
       renderRows.push({ label: key, qty: Math.round(railGroups[key] * 100) / 100, unit: 'м.п.' });
@@ -994,7 +984,6 @@ function buildRoomRowsHtml(room, layout, paid){
       renderRows.push(r);
     }
   } else {
-    /* После оплаты — как есть */
     renderRows = room.rows.map(r => ({
       label: r.label,
       qty: num(r.qty, 0),
@@ -1013,7 +1002,6 @@ function buildRoomRowsHtml(room, layout, paid){
       : '<span class="locked">После оплаты 🔒</span>';
     html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
 
-    /* ★ ПРАВКА 5.2: после оплаты под объединённой рейкой рисуем схему нарезки */
     if(paid
        && /\(объединено\)/i.test(r.label)
        && room.cuttingScheme
@@ -1025,7 +1013,6 @@ function buildRoomRowsHtml(room, layout, paid){
   return html;
 }
 
-/* ★ ПРАВКА 5.1: рендер схемы нарезки объединённых реек — полоски как в калькуляторе */
 function renderCuttingSchemeKp(scheme, targetLen){
   const L = num(targetLen, 0) || 1;
   let html = '<div class="kp-cutting">';
@@ -1088,12 +1075,10 @@ function normalizeKpMulti(raw){
     unit: r.unit || 'шт.',
     price: num(r.price, 0)
   };
-  /* Раскрой рейки (pieces) — приходит из i5. Показываем после оплаты. */
   if(r.pieces && typeof r.pieces === 'object') row.pieces = r.pieces;
   return row;
 }) : [];
 
-/* Флаг оплаты. Если true — раскрываем клиенту раскрой в спецификации. */
 kp.paid = raw.paid === true;
 kp.paidAt = raw.paidAt || null;
 
@@ -1124,7 +1109,6 @@ kp.paidAt = raw.paidAt || null;
         polygon: null,
         rows: []
       };
-        /* ★ ПРАВКА 4: читаем схему нарезки объединённых реек, если она пришла */
   if(r.cuttingScheme && typeof r.cuttingScheme === 'object' && Array.isArray(r.cuttingScheme.scheme)){
     room.cuttingScheme = {
       refSize: num(r.cuttingScheme.refSize, 0),
@@ -1180,8 +1164,8 @@ kp.paidAt = raw.paidAt || null;
 function buildRoomsSectionHtml(kp){
   if(kp.rooms.length <= 1){
     const room = kp.rooms[0];
-    room._showRailLengths = !!kp.paid;   // ★ флаг
-    const layout = recalcLayout(room);   // ← ЗДЕСЬ
+    room._showRailLengths = !!kp.paid;
+    const layout = recalcLayout(room);
     const railHex = getRailHex(room.color);
     return '<div class="kp-section kp-observable">'+
       '<h2 class="kp-sec-title"><span class="kp-sec-num">2</span>Помещение</h2>'+
@@ -1195,8 +1179,8 @@ function buildRoomsSectionHtml(kp){
   }
   let cards = '';
 kp.rooms.forEach((room, i) => {
-  room._showRailLengths = !!kp.paid;   // ★ флаг
-  const layout = recalcLayout(room);   // ← ЗДЕСЬ
+  room._showRailLengths = !!kp.paid;
+  const layout = recalcLayout(room);
     const railHex = getRailHex(room.color);
     cards +=
       '<div class="kp-room-card has-badge" data-room-idx="'+i+'">'+
@@ -1238,7 +1222,7 @@ function buildInvoiceHtml(kp){
   const paymentFull = deal.payment >= 100;
   const paymentClause = paymentFull
     ? 'Оплата производится в размере 100 % предоплаты.'
-    : 'Оплата производится в размере ' + deal.payment + ' % предоплаты. Остаток суммы по данному счёту-договору подлежит оплате после подтверждения Поставщиком готовности товара к отгрузке. На момент отгрузки товар должен быть оплачен Покупателем полностью.';
+    : 'Оплата производится в размере ' + deal.payment + ' % предоплаты. Остаток суммы по данному счёту-договору подлежит оплате после подтверждения Поставщиком готовности товара к отгрузке. На момент отгрузки товара должен быть оплачен Покупателем полностью.';
 
   let subtotal = 0, vat = 0, total = 0;
   const rowsHtml = rows.map((r, i) => {
@@ -1448,7 +1432,6 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
   const qty = num(r.qty, 0);
   const unit = r.unit || 'шт.';
   const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
-  /* Если счёт оплачен и есть раскрой — показываем его под строкой */
   let piecesHtml = '';
   if(kp.paid && r.pieces && typeof r.pieces === 'object'){
     const parts = Object.keys(r.pieces).map(size => {
@@ -1639,7 +1622,7 @@ async function init(){
   console.group('[CUBICA] Парсинг payload');
   console.log('rooms =', kp.rooms.length, 'rows =', kp.rows.length, 'price =', kp.price, 'areaTotal =', kp.areaTotal);
   console.groupEnd();
-  window.__kp = kp;   /* ★ временный дебаг — потом удалить */
+  window.__kp = kp;
   renderKp(kp);
 }
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
