@@ -547,7 +547,7 @@ function recalcLayout(room){
   const polygon = (room.polygon && Array.isArray(room.polygon))
     ? room.polygon.map(p=>[Number(p[0]),Number(p[1])])
     : null;
-  const rotationDeg = num(room.rotation, 0);
+  const rotationDeg = num(room.rotation, 0) + (room.rotate90 ? 90 : 0);
   const rotRad = rotationDeg*Math.PI/180;
   const cosR = Math.cos(rotRad), sinR = Math.sin(rotRad);
   const absC = Math.abs(cosR), absS = Math.abs(sinR);
@@ -1105,6 +1105,7 @@ kp.paidAt = raw.paidAt || null;
         caps:  num(r.caps, 0),
         angle: num(r.angle, 0),
         rotation: num(r.rotation, 0),
+        rotate90: !!r.rotate90,
         areaM2: areaM2,
         polygon: null,
         rows: []
