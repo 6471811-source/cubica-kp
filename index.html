@@ -926,7 +926,7 @@ function buildRoomStatsHtml(room, layout){
   }
   h += '<div class="row"><span class="lb">Цвет</span><span class="vl">'+escapeHtml(room.colorLabel || room.color || 'Denver')+'</span></div>';
   h += '<div class="row"><span class="lb">Рейка</span><span class="vl">'+layout.railW+'×'+layout.railH+'</span></div>';
-  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch+' мм</span></div>';
+  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.gap+' мм</span></div>';
   return h;
 }
 
@@ -1406,19 +1406,19 @@ function renderKp(kp){
       const r0 = kp.rooms[0];
       statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+r0.railW+'×'+r0.railH+'</div></div>';
     }
-    const pitchesSet = new Set(kp.rooms.map(r => r.railW + r.gap));
-    if(pitchesSet.size === 1){
-      const r0 = kp.rooms[0];
-      const p0 = r0.railW + r0.gap;
-      statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+p0+'">0</span><small> мм</small></div></div>';
-    }
+const pitchesSet = new Set(kp.rooms.map(r => r.gap));
+if(pitchesSet.size === 1){
+  const r0 = kp.rooms[0];
+  const p0 = r0.gap;
+  statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+p0+'">0</span><small> мм</small></div></div>';
+}
   } else if(isPoly){
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Форма</div><div class="kp-stat-vl" style="font-size:16px">Непрямоугольная</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+kp.p.gap+'">0</span><small> мм</small></div></div>';
   } else {
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>' +
@@ -1426,7 +1426,7 @@ function renderKp(kp){
       '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+kp.p.gap+'">0</span><small> мм</small></div></div>';
   }
 
 const rowsHtml = kp.rows.length ? kp.rows.map(r => {
