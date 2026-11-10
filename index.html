@@ -1104,7 +1104,7 @@ kp.paidAt = raw.paidAt || null;
         colorLabel: r.colorLabel || r.color || kp.color,
         caps:  num(r.caps, 0),
         angle: num(r.angle, 0),
-        rotation: num(r.rotation, num(r.rotationDeg, num(r.angle, 0))),
+        rotation: num(r.rotation, 0),
         rotate90: !!r.rotate90,
         areaM2: areaM2,
         polygon: null,
