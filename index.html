@@ -1611,7 +1611,8 @@ async function init(){
       '<p>Откройте эту страницу по кнопке «Сформировать ссылку для клиента» в счёте.</p></div>';
     return;
   }
-
+console.log("=== PAYLOAD ДО ОПЛАТЫ ===");
+console.log(JSON.stringify(raw, null, 2));
   let kp;
   try{ kp = normalizeKpMulti(raw); }
   catch(e){
