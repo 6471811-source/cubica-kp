@@ -122,14 +122,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-room-rows .row:last-child{border-bottom:none}
 .kp-room-rows .label{color:#2c3e50;flex:1}
 .kp-room-rows .locked{color:#9aa8b5;font-weight:600;font-style:italic;white-space:nowrap;font-size:11.5px}
-.kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
-.kp-cutting{margin:6px 0 10px;padding:10px 14px;background:#f1f8e9;border:1px solid #c5e1a5;border-radius:6px;font-size:11.5px;color:#2e7d32;line-height:1.6}
-.kp-cutting-title{font-weight:800;margin-bottom:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px}
-.kp-cutting-row{display:flex;gap:6px;align-items:center;margin-bottom:3px;flex-wrap:wrap}
-.kp-cutting-bar{display:inline-flex;height:16px;border-radius:3px;overflow:hidden;background:#fff;border:1px solid #c5e1a5;min-width:60px;width:160px}
-.kp-cutting-piece{display:inline-block;height:100%;border-right:1px solid #fff;background:#66bb6a}
-.kp-cutting-piece.waste{background:#ffab91}
-.kp-cutting-meta{font-family:Consolas,'Courier New',monospace;font-size:10.5px;color:#555}
+  .kp-room-rows .value{color:#c49a6c;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12.5px}
 .kp-rooms-nav{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
 .kp-rooms-nav .dot{width:10px;height:10px;border-radius:50%;background:rgba(196,154,108,.3);cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0}
 .kp-rooms-nav .dot.active{background:#c49a6c;transform:scale(1.3)}
@@ -253,6 +246,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .pv-footer span:first-child{color:#e10004;font-weight:800}
 .pv-footer span:last-child{color:#e10004}
 .pv-logo-color{width:100%;height:auto;display:block;margin-bottom:14px}
+  /* Раскрой реек — показывается после оплаты */
 .kp-pieces-row td { border-bottom: 1px solid rgba(196,154,108,.1); padding-top: 0 !important; padding-bottom: 12px !important; }
 .kp-pieces-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; background: rgba(196,154,108,.06); border-left: 3px solid #c49a6c; border-radius: 6px; font-size: 12px; }
 .kp-pieces-label { font-weight: 700; color: #c49a6c; text-transform: uppercase; letter-spacing: .5px; font-size: 10.5px; }
@@ -346,8 +340,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 <div class="kp-wrap" id="kp-content"><div class="kp-empty"><h2>Загрузка...</h2></div></div>
 
 <script type="module">
-// НАЧАЛО JS
-  import * as THREE from 'three';
+import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ==================== ЗАСТАВКА ==================== */
@@ -547,7 +540,7 @@ function recalcLayout(room){
   const polygon = (room.polygon && Array.isArray(room.polygon))
     ? room.polygon.map(p=>[Number(p[0]),Number(p[1])])
     : null;
-  const rotationDeg = num(room.rotation, 0) + (room.rotate90 ? 90 : 0);
+  const rotationDeg = num(room.rotation, 0);
   const rotRad = rotationDeg*Math.PI/180;
   const cosR = Math.cos(rotRad), sinR = Math.sin(rotRad);
   const absC = Math.abs(cosR), absS = Math.abs(sinR);
@@ -636,7 +629,7 @@ function recalcLayout(room){
     }
     perStringerSegments.push({x:gx, origX:gx, segs:strSegList, hangers});
   }
-return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon, showRailLengths: !!room._showRailLengths};
+  return {L_in:L, W_in:W, railW, railH, gap, pitch, rotationDeg, perRailSegments, perStringerSegments, polygon, isPolygon:!!polygon};
 }
 
 /* ==================== 2D ==================== */
@@ -657,34 +650,11 @@ function kpBuild2DScheme(layout, railHex){
   else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';
   svg += '</clipPath></defs>';
   svg += '<g clip-path="url(#'+uid+')">';
-for(const rseg of layout.perRailSegments){
-  const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
-  const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
-  svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="'+railHex+'" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
-
-  if(layout.showRailLengths && Array.isArray(rseg.pieces)){
-    const deg = Math.atan2(sy1-sy0, sx1-sx0) * 180/Math.PI;
-    let acc = 0;
-    for(let i = 0; i < rseg.pieces.length; i++){
-      const piece = rseg.pieces[i];
-      const t0 = acc/rseg.len, t1 = (acc+piece)/rseg.len;
-      const cxa = sx0+(sx1-sx0)*t0, cya = sy0+(sy1-sy0)*t0;
-      const cxb = sx0+(sx1-sx0)*t1, cyb = sy0+(sy1-sy0)*t1;
-      const mx = (cxa+cxb)/2, my = (cya+cyb)/2;
-
-      if(i < rseg.pieces.length - 1){
-        svg += '<circle cx="'+cxb.toFixed(2)+'" cy="'+cyb.toFixed(2)+'" r="3.5" fill="#ffd54f" stroke="#333" stroke-width="1"/>';
-      }
-
-      if(Math.hypot(cxb-cxa, cyb-cya) > 14){
-        svg += '<g transform="translate('+mx.toFixed(1)+','+my.toFixed(1)+') rotate('+deg.toFixed(2)+')">';
-        svg += '<text text-anchor="middle" font-size="9" font-weight="700" fill="#1a1a2e" style="paint-order:stroke;stroke:#ffffff;stroke-width:2.5px;stroke-linejoin:round;">'+piece+'</text>';
-        svg += '</g>';
-      }
-      acc += piece;
-    }
+  for(const rseg of layout.perRailSegments){
+    const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
+    const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
+    svg += '<line x1="'+sx0.toFixed(2)+'" y1="'+sy0.toFixed(2)+'" x2="'+sx1.toFixed(2)+'" y2="'+sy1.toFixed(2)+'" stroke="'+railHex+'" stroke-width="'+Math.max(2, layout.railW*s*0.9).toFixed(2)+'" stroke-linecap="butt"/>';
   }
-}
   for(const sseg of layout.perStringerSegments){
     for(const sg of sseg.segs){
       const sx0 = ox+sg.x0*s, sy0 = oy+sg.y0*s;
@@ -926,7 +896,7 @@ function buildRoomStatsHtml(room, layout){
   }
   h += '<div class="row"><span class="lb">Цвет</span><span class="vl">'+escapeHtml(room.colorLabel || room.color || 'Denver')+'</span></div>';
   h += '<div class="row"><span class="lb">Рейка</span><span class="vl">'+layout.railW+'×'+layout.railH+'</span></div>';
-  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.gap+' мм</span></div>';
+  h += '<div class="row"><span class="lb">Шаг</span><span class="vl">'+layout.pitch+' мм</span></div>';
   return h;
 }
 
@@ -934,108 +904,16 @@ function buildRoomRowsHtml(room, layout, paid){
   if(!room.rows || !room.rows.length){
     return '<div style="text-align:center;color:#9aa8b5;padding:8px 0">Нет позиций</div>';
   }
-
-  let renderRows;
-  if(!paid){
-    const railGroups = {};
-    const otherRows = [];
-    const order = [];
-
-    for(const r of room.rows){
-      const label = String(r.label || '');
-      const unit = r.unit || 'шт.';
-      const qty = num(r.qty, 0);
-
-      let isRail = false;
-      let railKey = label;
-      let sizeMm = 0;
-
-      if(unit === 'м.п.' || unit === 'mp'){
-        isRail = true;
-      } else {
-        const cleanLabel = label.replace(/\s*\(объединено\)\s*$/i, '').trim();
-        const m = cleanLabel.match(/^Рейка Cubica (.+?)\s+(\d+)\s*мм$/);
-        if(m){
-          isRail = true;
-          railKey = 'Рейка Cubica ' + m[1];
-          sizeMm = parseInt(m[2], 10);
-        }
-      }
-
-      if(isRail){
-        let mp;
-        if(unit === 'м.п.' || unit === 'mp'){
-          mp = qty;
-        } else {
-          mp = qty * sizeMm / 1000;
-        }
-        if(!railGroups[railKey]){ railGroups[railKey] = 0; order.push(railKey); }
-        railGroups[railKey] += mp;
-      } else {
-        otherRows.push({ label: label, qty: qty, unit: unit });
-      }
-    }
-
-    renderRows = [];
-    for(const key of order){
-      renderRows.push({ label: key, qty: Math.round(railGroups[key] * 100) / 100, unit: 'м.п.' });
-    }
-    for(const r of otherRows){
-      renderRows.push(r);
-    }
-  } else {
-    renderRows = room.rows.map(r => ({
-      label: r.label,
-      qty: num(r.qty, 0),
-      unit: r.unit || 'шт.',
-      pieces: r.pieces
-    }));
-  }
-
   let html = '';
-  for(const r of renderRows){
-    const qty = r.qty;
+  for(const r of room.rows){
+    const qty = num(r.qty, 0);
     const unit = r.unit || 'шт.';
     const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
     const right = paid
       ? '<span class="value">'+qtyStr+' '+escapeHtml(unit)+'</span>'
       : '<span class="locked">После оплаты 🔒</span>';
     html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
-
-    if(paid
-       && /\(объединено\)/i.test(r.label)
-       && room.cuttingScheme
-       && Array.isArray(room.cuttingScheme.scheme)
-       && room.cuttingScheme.scheme.length){
-      html += renderCuttingSchemeKp(room.cuttingScheme.scheme, room.cuttingScheme.refSize);
-    }
   }
-  return html;
-}
-
-function renderCuttingSchemeKp(scheme, targetLen){
-  const L = num(targetLen, 0) || 1;
-  let html = '<div class="kp-cutting">';
-  html += '<div class="kp-cutting-title">Схема нарезки — рейки по ' + L + ' мм</div>';
-  for(let i = 0; i < scheme.length; i++){
-    const s = scheme[i];
-    html += '<div class="kp-cutting-row">';
-    html += '<span class="kp-cutting-meta">#' + (i+1) + ':</span>';
-    html += '<span class="kp-cutting-bar">';
-    for(const item of s.items){
-      const w = (item / L) * 100;
-      html += '<span class="kp-cutting-piece" style="width:' + w.toFixed(2) + '%" title="' + item + ' мм"></span>';
-    }
-    if(s.waste > 0){
-      const w = (s.waste / L) * 100;
-      html += '<span class="kp-cutting-piece waste" style="width:' + w.toFixed(2) + '%" title="отход ' + s.waste + ' мм"></span>';
-    }
-    html += '</span>';
-    const parts = s.items.join(' + ');
-    html += '<span class="kp-cutting-meta">' + parts + (s.waste > 0 ? ' (отход ' + s.waste + ' мм)' : '') + '</span>';
-    html += '</div>';
-  }
-  html += '</div>';
   return html;
 }
 
@@ -1075,10 +953,12 @@ function normalizeKpMulti(raw){
     unit: r.unit || 'шт.',
     price: num(r.price, 0)
   };
+  /* Раскрой рейки (pieces) — приходит из i5. Показываем после оплаты. */
   if(r.pieces && typeof r.pieces === 'object') row.pieces = r.pieces;
   return row;
 }) : [];
 
+/* Флаг оплаты. Если true — раскрываем клиенту раскрой в спецификации. */
 kp.paid = raw.paid === true;
 kp.paidAt = raw.paidAt || null;
 
@@ -1105,30 +985,10 @@ kp.paidAt = raw.paidAt || null;
         caps:  num(r.caps, 0),
         angle: num(r.angle, 0),
         rotation: num(r.rotation, 0),
-        rotate90: !!r.rotate90,
         areaM2: areaM2,
         polygon: null,
         rows: []
       };
-  if(r.cuttingScheme && typeof r.cuttingScheme === 'object' && Array.isArray(r.cuttingScheme.scheme)){
-    room.cuttingScheme = {
-      refSize: num(r.cuttingScheme.refSize, 0),
-      extraQty: num(r.cuttingScheme.extraQty, 0),
-      waste: num(r.cuttingScheme.waste, 0),
-      wastePct: num(r.cuttingScheme.wastePct, 0),
-      scheme: r.cuttingScheme.scheme
-        .filter(s => s && Array.isArray(s.items))
-        .map(s => ({
-          items: s.items.map(x => num(x, 0)).filter(x => x > 0),
-          used: num(s.used, 0),
-          waste: num(s.waste, 0)
-        }))
-        .filter(s => s.items.length > 0)
-    };
-    if(!room.cuttingScheme.scheme.length) room.cuttingScheme = null;
-  } else {
-    room.cuttingScheme = null;
-  }
       if(Array.isArray(r.polygon) && r.polygon.length >= 3){
         const poly = r.polygon.filter(p => Array.isArray(p) && p.length >= 2)
           .map(p => [Number(p[0]), Number(p[1])])
@@ -1165,7 +1025,6 @@ kp.paidAt = raw.paidAt || null;
 function buildRoomsSectionHtml(kp){
   if(kp.rooms.length <= 1){
     const room = kp.rooms[0];
-    room._showRailLengths = !!kp.paid;
     const layout = recalcLayout(room);
     const railHex = getRailHex(room.color);
     return '<div class="kp-section kp-observable">'+
@@ -1179,9 +1038,8 @@ function buildRoomsSectionHtml(kp){
     '</div>';
   }
   let cards = '';
-kp.rooms.forEach((room, i) => {
-  room._showRailLengths = !!kp.paid;
-  const layout = recalcLayout(room);
+  kp.rooms.forEach((room, i) => {
+    const layout = recalcLayout(room);
     const railHex = getRailHex(room.color);
     cards +=
       '<div class="kp-room-card has-badge" data-room-idx="'+i+'">'+
@@ -1223,7 +1081,7 @@ function buildInvoiceHtml(kp){
   const paymentFull = deal.payment >= 100;
   const paymentClause = paymentFull
     ? 'Оплата производится в размере 100 % предоплаты.'
-    : 'Оплата производится в размере ' + deal.payment + ' % предоплаты. Остаток суммы по данному счёту-договору подлежит оплате после подтверждения Поставщиком готовности товара к отгрузке. На момент отгрузки товара должен быть оплачен Покупателем полностью.';
+    : 'Оплата производится в размере ' + deal.payment + ' % предоплаты. Остаток суммы по данному счёту-договору подлежит оплате после подтверждения Поставщиком готовности товара к отгрузке. На момент отгрузки товар должен быть оплачен Покупателем полностью.';
 
   let subtotal = 0, vat = 0, total = 0;
   const rowsHtml = rows.map((r, i) => {
@@ -1406,19 +1264,19 @@ function renderKp(kp){
       const r0 = kp.rooms[0];
       statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+r0.railW+'×'+r0.railH+'</div></div>';
     }
-const pitchesSet = new Set(kp.rooms.map(r => r.gap));
-if(pitchesSet.size === 1){
-  const r0 = kp.rooms[0];
-  const p0 = r0.gap;
-  statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+p0+'">0</span><small> мм</small></div></div>';
-}
+    const pitchesSet = new Set(kp.rooms.map(r => r.railW + r.gap));
+    if(pitchesSet.size === 1){
+      const r0 = kp.rooms[0];
+      const p0 = r0.railW + r0.gap;
+      statsHtml += '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+p0+'">0</span><small> мм</small></div></div>';
+    }
   } else if(isPoly){
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Форма</div><div class="kp-stat-vl" style="font-size:16px">Непрямоугольная</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+kp.p.gap+'">0</span><small> мм</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
   } else {
     statsHtml +=
       '<div class="kp-stat"><div class="kp-stat-lb">Длина</div><div class="kp-stat-vl"><span data-count="'+kp.L_in+'">0</span><small> мм</small></div></div>' +
@@ -1426,13 +1284,14 @@ if(pitchesSet.size === 1){
       '<div class="kp-stat"><div class="kp-stat-lb">Площадь</div><div class="kp-stat-vl"><span data-count="'+kp.area.toFixed(2)+'">0</span><small> м²</small></div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Цвет</div><div class="kp-stat-vl" style="font-size:16px">'+escapeHtml(kp.color)+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
-      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+kp.p.gap+'">0</span><small> мм</small></div></div>';
+      '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+pitch+'">0</span><small> мм</small></div></div>';
   }
 
 const rowsHtml = kp.rows.length ? kp.rows.map(r => {
   const qty = num(r.qty, 0);
   const unit = r.unit || 'шт.';
   const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
+  /* Если счёт оплачен и есть раскрой — показываем его под строкой */
   let piecesHtml = '';
   if(kp.paid && r.pieces && typeof r.pieces === 'object'){
     const parts = Object.keys(r.pieces).map(size => {
@@ -1623,20 +1482,8 @@ async function init(){
   console.group('[CUBICA] Парсинг payload');
   console.log('rooms =', kp.rooms.length, 'rows =', kp.rows.length, 'price =', kp.price, 'areaTotal =', kp.areaTotal);
   console.groupEnd();
-  window.__kp = kp;
   renderKp(kp);
 }
-
-  // ПРОВЕРКА
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    if (window.__kp && window.__kp.rooms && window.__kp.rooms[0]) {
-      console.log('=== ПРИШЛО В КП ===');
-      console.log('rotation:', window.__kp.rooms[0].rotation);
-      console.log('rotate90:', window.__kp.rooms[0].rotate90);
-    }
-  }, 1000);
-});
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 </script>
 </body>
