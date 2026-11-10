@@ -1626,6 +1626,17 @@ async function init(){
   window.__kp = kp;
   renderKp(kp);
 }
+
+  // ПРОВЕРКА
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (window.__kp && window.__kp.rooms && window.__kp.rooms[0]) {
+      console.log('=== ПРИШЛО В КП ===');
+      console.log('rotation:', window.__kp.rooms[0].rotation);
+      console.log('rotate90:', window.__kp.rooms[0].rotate90);
+    }
+  }, 1000);
+});
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 </script>
 </body>
