@@ -1156,6 +1156,12 @@ kp.paidAt = raw.paidAt || null;
       rows: kp.rows.slice()
     }];
   }
+  // ★ ИСПРАВЛЕНИЕ: Если в комнатах угол 0, но есть глобальный r, подставляем его
+if (kp.r) {
+  rooms.forEach(function(rm) {
+    if (!rm.rotation) rm.rotation = kp.r;
+  });
+}
   kp.rooms = rooms;
   kp.areaTotal = rooms.reduce((s, r) => s + num(r.areaM2, 0), 0);
   return kp;
