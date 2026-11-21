@@ -1002,18 +1002,20 @@ function buildRoomRowsHtml(room, layout, paid){
       : '<span class="locked">После оплаты 🔒</span>';
     html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
 
-// Извлекаем размер из названия текущей строки (например, из "Рейка 3000 мм" получим 3000)
-const sizeMatch = r.label.match(/\s(\d+)\s*мм/);
-const currentSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
+    // Извлекаем размер, но ТОЛЬКО если это строка с рейкой
+    const isRailRow = /^Рейка/i.test(r.label);
+    const sizeMatch = isRailRow ? r.label.match(/\s(\d+)\s*мм/) : null;
+    const currentSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
 
-// Проверяем: оплачен, есть схема, и текущая длина рейки совпадает с той, в которую объединяли
-if(paid
-   && room.cuttingScheme
-   && currentSize === Number(room.cuttingScheme.refSize)
-   && Array.isArray(room.cuttingScheme.scheme)
-   && room.cuttingScheme.scheme.length){
-  html += renderCuttingSchemeKp(room.cuttingScheme.scheme, room.cuttingScheme.refSize);
-}
+    // Проверяем: оплачен, есть схема, это рейка, и текущая длина совпадает
+    if(paid
+       && room.cuttingScheme
+       && isRailRow
+       && currentSize === Number(room.cuttingScheme.refSize)
+       && Array.isArray(room.cuttingScheme.scheme)
+       && room.cuttingScheme.scheme.length){
+      html += renderCuttingSchemeKp(room.cuttingScheme.scheme, room.cuttingScheme.refSize);
+    }
   }
   return html;
 }
