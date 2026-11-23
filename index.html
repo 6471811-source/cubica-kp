@@ -454,6 +454,8 @@ function b64enc(s){
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
+// количество как в i5: тыс.шт — 3 знака, остальное — 2, с запятой
+function fmtQtyUnit(v,u){ const t=/^тыс/i.test(String(u||'').trim()); const n=+(Number(v)||0).toFixed(6); return n.toFixed(t?3:2).replace('.', ','); }
 function fmtQtySmart(v){ const n=Number(v)||0; return Math.abs(n-Math.round(n))<1e-9 ? Math.round(n).toLocaleString('ru-RU') : n.toLocaleString('ru-RU',{maximumFractionDigits:3}); } // целые — без дробей, 0,2 тыс.шт — как есть
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
 function fmtInvoice(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -1461,6 +1463,7 @@ function buildRoomRowsHtml(room, layout, paid){
       label: r.label,
       qty: num(r.qty, 0),
       unit: r.unit || 'шт.',
+      role: r.role,
       pieces: r.pieces
     }));
   }
@@ -1469,7 +1472,7 @@ function buildRoomRowsHtml(room, layout, paid){
   for(const r of renderRows){
     const qty = r.qty;
     const unit = r.unit || 'шт.';
-    const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtQtySmart(qty);
+    const qtyStr = ((unit === 'м.п.' || unit === 'mp') && !r.role) ? fmtMp(qty) : fmtQtyUnit(qty, unit);
     const right = paid
       ? '<span class="value">'+qtyStr+' '+escapeHtml(unit)+'</span>'
       : '<span class="locked">После оплаты 🔒</span>';
@@ -1719,7 +1722,7 @@ function buildInvoiceHtml(kp){
     const v = s * 0.20;
     const t = s + v;
     subtotal += s; vat += v; total += t;
-    const qtyStr = (r.unit === 'м.п.' || r.unit === 'mp') ? fmtQty2(r.qty) : String(r.qty);
+    const qtyStr = fmtQtyUnit(r.qty, r.unit);
     return '<tr>' +
       '<td class="pos">' + (i+1) + '</td>' +
       '<td>' + escapeHtml(r.label) + '</td>' +
@@ -1988,7 +1991,7 @@ if(pitchesSet.size === 1){
 const rowsHtml = kp.rows.length ? kp.rows.map(r => {
   const qty = num(r.qty, 0);
   const unit = r.unit || 'шт.';
-  const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtQtySmart(qty);
+  const qtyStr = ((unit === 'м.п.' || unit === 'mp') && !r.role) ? fmtMp(qty) : fmtQtyUnit(qty, unit);
   let piecesHtml = '';
   if(kp.paid && r.pieces && typeof r.pieces === 'object'){
     const parts = Object.keys(r.pieces).map(size => {
