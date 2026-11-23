@@ -1366,6 +1366,7 @@ function getRoomLayout(room){ return isArmstrongRoom(room) ? ARM.layoutRoom(room
 
 /* ==================== РЕЙКИ ==================== */
 function isRailRow(row){
+  if(row.role) return false;   // строки калькуляторов по ролям (Армстронг) — не рейка, даже в м.п.
   if(row.unit === 'mp' || row.unit === 'м.п.') return true;
   if(Array.isArray(row.pieces) && row.pieces.length > 0) return true;
   const lbl = String(row.label || '').toLowerCase();
@@ -1419,7 +1420,9 @@ function buildRoomRowsHtml(room, layout, paid){
       let railKey = label;
       let sizeMm = 0;
 
-      if(unit === 'м.п.' || unit === 'mp'){
+      if(r.role){
+        isRail = false;   // строка Армстронга по роли
+      } else if(unit === 'м.п.' || unit === 'mp'){
         isRail = true;
       } else {
         const cleanLabel = label.replace(/\s*\(объединено\)\s*$/i, '').trim();
@@ -1545,6 +1548,7 @@ function normalizeKpMulti(raw){
     price: num(r.price, 0)
   };
   if(r.pieces && typeof r.pieces === 'object') row.pieces = r.pieces;
+  if(r.role) row.role = String(r.role);
   return row;
 }) : [];
 
@@ -1605,15 +1609,15 @@ kp.paidAt = raw.paidAt || null;
         if(poly.length >= 3) room.polygon = poly;
       }
       if(Array.isArray(r.rows)){
-        room.rows = r.rows.filter(x => x && x.label != null).map(x => ({
-          label: String(x.label),
-          qty: num(x.qty, 0),
-          unit: x.unit || 'шт.'
-        }));
+        room.rows = r.rows.filter(x => x && x.label != null).map(x => {
+          const o = { label: String(x.label), qty: num(x.qty, 0), unit: x.unit || 'шт.' };
+          if(x.role) o.role = String(x.role);
+          return o;
+        });
       }
       // Армстронг: признак по типу КП, по полям помещения или по строкам спецификации
       const armByFields = (r.tile1200 !== undefined) || (r.tileSize !== undefined) || (r.frameRigid !== undefined);
-      const armByRows = Array.isArray(r.rows) && r.rows.some(x => x && /Т-профиль|Плита потолочная|армстронг|armstrong/i.test(String(x.label||'')));
+      const armByRows = Array.isArray(r.rows) && r.rows.some(x => x && (/^arm\./.test(String(x.role||'')) || /Т-профиль|Плита потолочная|армстронг|armstrong/i.test(String(x.label||''))));
       if(String(raw.type||'').toLowerCase() === 'armstrong' || r.kind === 'armstrong' || armByFields || armByRows){
         room.kind = 'armstrong';
         room.tile1200 = !!r.tile1200 || String(r.tileSize||'').indexOf('1200') === 0;
