@@ -657,6 +657,7 @@ function kpBuild2DScheme(layout, railHex){
   else svg += '<rect x="'+ox+'" y="'+oy+'" width="'+dw+'" height="'+dh+'"/>';
   svg += '</clipPath></defs>';
   svg += '<g clip-path="url(#'+uid+')">';
+  if(layout.innerSvg) svg += layout.innerSvg(s, ox, oy);
 for(const rseg of layout.perRailSegments){
   const sx0 = ox+rseg.x0*s, sy0 = oy+rseg.y0*s;
   const sx1 = ox+rseg.x1*s, sy1 = oy+rseg.y1*s;
@@ -745,6 +746,7 @@ for(const rseg of layout.perRailSegments){
     svg += '<text class="kp-dim-text" x="0" y="5" text-anchor="middle">'+txtW+'</text>';
     svg += '</g>';
   }
+  if(layout.legendSvg) svg += layout.legendSvg(width, height);
   svg += '</svg>';
   return svg;
 }
@@ -786,6 +788,7 @@ function makeWoodTexture(name){
 
 /* ==================== 3D ==================== */
 function kpInit3D(room, layout, container){
+  if(layout && layout.isArmstrong) return ARM.init3D(room, layout, container);
   if(!container || !container.clientWidth || !container.clientHeight){
     setTimeout(()=>kpInit3D(room, layout, container), 150);
     return null;
@@ -896,6 +899,450 @@ function kpInit3D(room, layout, container){
   };
 }
 
+
+/* ==================== ARMSTRONG (кассетный потолок) ====================
+   Раскладка перенесена из калькулятора Армстронга 1:1 (buildLayout),
+   чтобы КП рисовало ровно то же, что видел менеджер. */
+const ARM = (function(){
+const TILE_CELL=600,TILE_PANEL=595,MAIN_LENGTH=3600;
+const WALL_TOL=1,MIN_VISIBLE=0.5;
+const COL_MAIN='#d32f2f',COL_1200='#1976d2',COL_600='#43a047';
+const FLANGE_H=0.004,FLANGE_W=0.024,WEB_H=0.026,WEB_W=0.005,PLATE_T=0.012;
+function xIntervalsAtY(poly,y){const xs=[],n=poly.length;for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[0]-b[0])<1e-6){const y1=Math.min(a[1],b[1]),y2=Math.max(a[1],b[1]);if(y>=y1-0.01&&y<y2-0.01) xs.push(a[0]);}}xs.sort((p,q)=>p-q);const out=[];for(let i=0;i+1<xs.length;i+=2){const x1=xs[i],x2=xs[i+1];if(x2-x1>0.05) out.push([x1,x2]);}return out;}
+function yIntervalsAtX(poly,x){const ys=[],n=poly.length;for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[1]-b[1])<1e-6){const x1=Math.min(a[0],b[0]),x2=Math.max(a[0],b[0]);if(x>=x1-0.01&&x<x2-0.01) ys.push(a[1]);}}ys.sort((p,q)=>p-q);const out=[];for(let i=0;i+1<ys.length;i+=2){const y1=ys[i],y2=ys[i+1];if(y2-y1>0.05) out.push([y1,y2]);}return out;}
+function clipSegToPoly(poly,x1,y1,x2,y2){const out=[];if(Math.abs(y1-y2)<0.01){const ints=xIntervalsAtY(poly,(y1+y2)/2);const a=Math.min(x1,x2),b=Math.max(x1,x2);for(const [p,q] of ints){const lo=Math.max(a,p),hi=Math.min(b,q);if(hi-lo>0.05) out.push([lo,y1,hi,y1]);}}else if(Math.abs(x1-x2)<0.01){const ints=yIntervalsAtX(poly,(x1+x2)/2);const a=Math.min(y1,y2),b=Math.max(y1,y2);for(const [p,q] of ints){const lo=Math.max(a,p),hi=Math.min(b,q);if(hi-lo>0.05) out.push([x1,lo,x1,hi]);}}else{out.push([x1,y1,x2,y2]);}return out;}
+function segOnPolyWall(poly,x1,y1,x2,y2){const n=poly.length;if(Math.abs(y1-y2)<0.01){for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[1]-b[1])<0.01&&Math.abs(a[1]-y1)<WALL_TOL){const pmin=Math.min(a[0],b[0]),pmax=Math.max(a[0],b[0]);const smin=Math.min(x1,x2),smax=Math.max(x1,x2);if(Math.abs(pmin-smin)<WALL_TOL&&Math.abs(pmax-smax)<WALL_TOL) return true;}}}else if(Math.abs(x1-x2)<0.01){for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[0]-b[0])<0.01&&Math.abs(a[0]-x1)<WALL_TOL){const pmin=Math.min(a[1],b[1]),pmax=Math.max(a[1],b[1]);const smin=Math.min(y1,y2),smax=Math.max(y1,y2);if(Math.abs(pmin-smin)<WALL_TOL&&Math.abs(pmax-smax)<WALL_TOL) return true;}}}return false;}
+function pointInPoly(poly,px,py){let inside=false,n=poly.length;for(let i=0,j=n-1;i<n;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const inter=((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi);if(inter)inside=!inside;}return inside;}
+function buildLayout(L,W,offsetX,offsetY,totalRotDeg,L_in,W_in,phase,__o){
+phase=phase||0;
+const t=totalRotDeg*Math.PI/180,ct=Math.cos(t),st=Math.sin(t);
+const act=Math.abs(ct),ast=Math.abs(st);
+const hx=(L_in/2)*act+(W_in/2)*ast;
+const hy=(L_in/2)*ast+(W_in/2)*act;
+
+// Возвращаем фиксированный шаг 600
+const stepY = TILE_CELL; 
+const bcL = Math.ceil(L / TILE_CELL);
+const bcW = Math.ceil(W / stepY);
+
+// Центровка сетки. Для 600х600 — по шагу 600.
+// Для 1200х600 — по шагу 1200 в направлении, где плита имеет длину 1200,
+// чтобы подрезка у противоположных стен была одинаковой.
+const _t1200=!!__o.tile1200, _rigid=!!__o.rigid;
+let xS=-(bcL*TILE_CELL-L)/2+offsetX;
+let yS=-(bcW*stepY-W)/2+offsetY;
+if(_t1200 && !_rigid){ yS=-(Math.ceil(W/1200)*1200-W)/2+offsetY; }
+if(_t1200 && _rigid){ xS=-(Math.ceil(L/1200)*1200-L)/2+offsetX; }
+const yWallTop=W/2-hy,yWallBot=W/2+hy;
+const xWallMin=L/2-hx,xWallMax=L/2+hx;
+const jMin=Math.floor((xWallMin-xS)/TILE_CELL)-1;
+const jMax=Math.ceil((xWallMax-xS)/TILE_CELL)+1;
+const kMin=Math.floor((yWallTop-yS)/TILE_CELL)-1;
+const kMax=Math.ceil((yWallBot-yS)/TILE_CELL)+1;
+const vX=[];for(let j=jMin;j<=jMax;j++) vX.push(xS+j*TILE_CELL);
+let beams=[],tea600Y=[];
+const isTile1200 = !!__o.tile1200;
+const isRigid = !!__o.rigid;
+// Режим плиты 1200х600:
+//  'across' — обычный: несущие 3600 через 1200, поперечные 1200 через 600,
+//             плита ложится длинной стороной 1200 ПОПЕРЁК несущих (между ними). 600-х профилей нет.
+//  'along'  — жесткий каркас: несущие 3600 через 600, поперечные 600 через 1200,
+//             плита ложится длинной стороной 1200 ВДОЛЬ несущих.
+const tileMode = isTile1200 ? (isRigid ? 'along' : 'across') : '600';
+
+for(let k=kMin;k<=kMax;k++){
+  const y = yS + k * stepY;
+  const m=((k%2)+2)%2;
+  let isBeam;
+  if(isRigid){
+    isBeam = true;
+  } else if(isTile1200 && __o.standard){
+    isBeam = m===1; // техкарта: несущие на нечётных линиях, без перестановки
+  } else {
+    isBeam = phase===1 ? m===0 : m===1;
+  }
+  if(isBeam) beams.push(y); else if(!isTile1200) tea600Y.push(y);
+}
+
+// Техкарта (доборные несущие у стен) — только для 600х600
+if (__o.standard && !isTile1200) {
+  let allLines = [...beams, ...tea600Y]
+    .filter(y => y > yWallTop + 1 && y < yWallBot - 1)
+    .sort((a,b)=>a-b);
+  
+  if (allLines.length > 0) {
+    const bottomLine = allLines[0];
+    let isRed = beams.some(b => Math.abs(b - bottomLine) < 0.5);
+    if (!isRed) {
+      tea600Y = tea600Y.filter(y => Math.abs(y - bottomLine) > 0.5);
+      beams.push(bottomLine);
+    }
+    const topLine = allLines[allLines.length - 1];
+    let isRedTop = beams.some(b => Math.abs(b - topLine) < 0.5);
+    if (!isRedTop) {
+      tea600Y = tea600Y.filter(y => Math.abs(y - topLine) > 0.5);
+      beams.push(topLine);
+    }
+  }
+  beams.sort((a, b) => a - b);
+  tea600Y.sort((a, b) => a - b);
+}
+
+if (isTile1200) {
+  tea600Y = []; 
+}
+
+const xLineMin=vX[0],xLineMax=vX[vX.length-1];
+const beamsIn=beams.filter(y=>y>yWallTop-0.5&&y<yWallBot+0.5);
+const edges=[yWallTop,...beamsIn,yWallBot];
+const bands=[];
+for(let i=0;i<edges.length-1;i++){
+const y0=edges[i],y1=edges[i+1];
+if(y1-y0<=0.5) continue;
+bands.push({y0,y1,isEdge:(i===0)||(i===edges.length-2)});
+}
+const toDisplay=(xw,yw)=>{
+const dxw=xw-L/2,dyw=yw-W/2;
+const u=dxw*ct-dyw*st,v=dxw*st+dyw*ct;
+return [u+L_in/2,v+W_in/2];
+};
+const poly=__o.poly;
+function onWallByPoints(dx1,dy1,dx2,dy2){
+if(poly) return segOnPolyWall(poly,dx1,dy1,dx2,dy2);
+const onTop=Math.abs(dy1)<WALL_TOL&&Math.abs(dy2)<WALL_TOL;
+const onBot=Math.abs(dy1-W_in)<WALL_TOL&&Math.abs(dy2-W_in)<WALL_TOL;
+const onLeft=Math.abs(dx1)<WALL_TOL&&Math.abs(dx2)<WALL_TOL;
+const onRight=Math.abs(dx1-L_in)<WALL_TOL&&Math.abs(dx2-L_in)<WALL_TOL;
+return onTop||onBot||onLeft||onRight;
+}
+function itemOnWall(it){
+let ex1,ey1,ex2,ey2;
+if(it.ori==='h'){ex1=it.x-it.len/2;ey1=it.y;ex2=it.x+it.len/2;ey2=it.y;}
+else{ex1=it.x;ey1=it.y-it.len/2;ex2=it.x;ey2=it.y+it.len/2;}
+const [dx1,dy1]=toDisplay(ex1,ey1);const [dx2,dy2]=toDisplay(ex2,ey2);
+return onWallByPoints(dx1,dy1,dx2,dy2);
+}
+const items=[];
+for(const yb of beams) items.push({type:3600,x:(xLineMin+xLineMax)/2,y:yb,len:xLineMax-xLineMin,ori:'h'});
+if(!isTile1200){
+  for(const yt of tea600Y){
+    for(let j=0;j<vX.length-1;j++){
+      const len=vX[j+1]-vX[j];if(len<=0.5) continue;
+      items.push({type:600,x:(vX[j]+vX[j+1])/2,y:yt,len,ori:'h'});
+    }
+  }
+}
+let warnWide=false;
+for(const band of bands){
+const h=band.y1-band.y0,yMid=(band.y0+band.y1)/2;
+let type;
+if(tileMode==='across'){
+  type=1200;
+  if(h>1200+0.5 && band.isEdge) warnWide=true;
+} else if(tileMode==='along'){
+  type=600;
+  if(h>600+0.5 && band.isEdge) warnWide=true;
+} else {
+  if(h<=600) type=600; else if(h<=1200) type=1200;
+  else{type=1200;if(band.isEdge)warnWide=true;}
+}
+for(let jj=0;jj<vX.length;jj++){
+  const j=jMin+jj;
+  // В режиме 'along' поперечные 600 стоят только на стыках плит (через 1200)
+  if(tileMode==='along' && (((j%2)+2)%2)!==0) continue;
+  items.push({type,x:vX[jj],y:yMid,len:h,ori:'v'});
+}
+}
+
+// ===== ПЛИТЫ (ячейки) в координатах сетки =====
+const tiles=[];
+if(tileMode==='600'){
+  for(let k=kMin;k<=kMax;k++) for(let j=jMin;j<=jMax;j++)
+    tiles.push({x0:xS+j*TILE_CELL,y0:yS+k*TILE_CELL,w:TILE_CELL,h:TILE_CELL});
+} else {
+  // ряды плит — между соседними несущими (+ по одному ряду за крайними несущими)
+  const bl=beams.slice().sort((a,b)=>a-b);
+  const pitch = tileMode==='across' ? 1200 : 600;
+  if(bl.length){ bl.unshift(bl[0]-pitch); bl.push(bl[bl.length-1]+pitch); }
+  for(let r=0;r<bl.length-1;r++){
+    const y0=bl[r],hh=bl[r+1]-bl[r];
+    if(hh<=0.5) continue;
+    if(tileMode==='across'){
+      for(let j=jMin;j<=jMax;j++) tiles.push({x0:xS+j*TILE_CELL,y0,w:TILE_CELL,h:hh});
+    } else {
+      const j0 = (((jMin%2)+2)%2)===0 ? jMin : jMin-1;
+      for(let j=j0;j<=jMax;j+=2) tiles.push({x0:xS+j*TILE_CELL,y0,w:2*TILE_CELL,h:hh});
+    }
+  }
+}
+// Проверка «точка внутри помещения» (в координатах сетки)
+function insideRoom(xw,yw){
+  const [dx,dy]=toDisplay(xw,yw);
+  if(poly) return pointInPoly(poly,dx,dy);
+  return dx>=0&&dx<=L_in&&dy>=0&&dy<=W_in;
+}
+// Подсчёт плит 1200х600 с учётом подрезки: кусок ≤ половины плиты — из одной плиты выходит 2 куска
+let tiles1200Count=0, minEdgeStrip=Infinity;
+if(isTile1200){
+  let sum=0;
+  const NX=tileMode==='across'?6:12, NY=tileMode==='across'?12:6;
+  for(const tl of tiles){
+    let inside=0;
+    for(let a=0;a<NX;a++) for(let b=0;b<NY;b++){
+      if(insideRoom(tl.x0+(a+0.5)*tl.w/NX, tl.y0+(b+0.5)*tl.h/NY)) inside++;
+    }
+    if(!inside) continue;
+    const f=inside/(NX*NY);
+    tl.frac=f;
+    sum += f<=0.5+1e-9 ? 0.5 : 1;
+  }
+  tiles1200Count=Math.ceil(sum-1e-9);
+  // самая узкая полоса подрезки у стены (между стеной и крайней несущей)
+  for(const band of bands){ if(band.isEdge){ const h=band.y1-band.y0; if(h<minEdgeStrip) minEdgeStrip=h; } }
+}
+let excludedOnWall=0;
+for(let i=items.length-1;i>=0;i--) if(itemOnWall(items[i])){items.splice(i,1);excludedOnWall++;}
+function rectSegClip(x1,y1,x2,y2){
+let t0=0,t1=1;const dx=x2-x1,dy=y2-y1;
+const p=[-dx,dx,-dy,dy],q=[x1,L_in-x1,y1,W_in-y1];
+for(let i=0;i<4;i++){
+if(Math.abs(p[i])<1e-9){if(q[i]<0)return null;}
+else{const tt=q[i]/p[i];if(p[i]<0)t0=Math.max(t0,tt);else t1=Math.min(t1,tt);}
+}
+if(t0>t1+1e-6) return null;
+return [t0,t1];
+}
+function clipItem(it){
+let ex1,ey1,ex2,ey2;
+if(it.ori==='h'){ex1=it.x-it.len/2;ey1=it.y;ex2=it.x+it.len/2;ey2=it.y;}
+else{ex1=it.x;ey1=it.y-it.len/2;ex2=it.x;ey2=it.y+it.len/2;}
+const [dx1,dy1]=toDisplay(ex1,ey1);const [dx2,dy2]=toDisplay(ex2,ey2);
+if(poly) return clipSegToPoly(poly,dx1,dy1,dx2,dy2);
+const c=rectSegClip(dx1,dy1,dx2,dy2);
+if(!c) return [];
+const x1=dx1+(dx2-dx1)*c[0], y1=dy1+(dy2-dy1)*c[0];
+const x2=dx1+(dx2-dx1)*c[1], y2=dy1+(dy2-dy1)*c[1];
+return [[x1,y1,x2,y2]];
+}
+let n3600=0,n1200=0,n600=0,n600Side=0;
+let sum3600Length=0;
+for(const it of items){
+const segs=clipItem(it);
+if(!segs.length) continue;
+let visLen=0;
+for(const s of segs) visLen+=Math.hypot(s[2]-s[0],s[3]-s[1]);
+if(visLen<MIN_VISIBLE) continue;
+if(it.type===3600){n3600++;sum3600Length+=visLen;}
+else if(it.type===1200) n1200++;
+else{
+n600++;
+if(it.ori==='h'){for(const s of segs){if(Math.min(s[0],s[2])<1||Math.max(s[0],s[2])>L_in-1){n600Side++;break;}}}
+}
+}
+const beamsInRoom=[];
+for(const yb of beams){
+const segs=clipItem({type:3600,x:(xLineMin+xLineMax)/2,y:yb,len:xLineMax-xLineMin,ori:'h'});
+let visLen=0;
+for(const s of segs) visLen+=Math.hypot(s[2]-s[0],s[3]-s[1]);
+if(visLen<MIN_VISIBLE) continue;
+let onWall=false;
+if(poly){
+if(segs.length===1){
+const s=segs[0];
+if(Math.abs(s[2]-s[0])>0.01) onWall=segOnPolyWall(poly,s[0],s[1],s[2],s[3]);
+}
+} else {
+const [dx1,dy1]=toDisplay(xLineMin,yb);
+const [dx2,dy2]=toDisplay(xLineMax,yb);
+onWall=onWallByPoints(dx1,dy1,dx2,dy2);
+}
+if(onWall) continue;
+beamsInRoom.push(yb);
+}
+return {phase,bcL,bcW,xS,yS,jMin,jMax,kMin,kMax,vX,beams,tea600Y,bands,items,tiles,tileMode,
+tiles1200Count,minEdgeStrip,
+n3600,n1200,n600,n600Side,beamsInRoom,warnWide,sum3600Length,excludedOnWall,clipItem};
+}
+
+
+function polyBBox(poly){let xmin=Infinity,ymin=Infinity,xmax=-Infinity,ymax=-Infinity;for(const p of poly){if(p[0]<xmin)xmin=p[0];if(p[0]>xmax)xmax=p[0];if(p[1]<ymin)ymin=p[1];if(p[1]>ymax)ymax=p[1];}return{xmin,ymin,xmax,ymax,W:xmax-xmin,H:ymax-ymin};}
+
+// Повторяет calculate() калькулятора: размеры, поворот, смещения, выбор фазы несущих
+function layoutRoom(room){
+  let L_in=num(room.L_in,0), W_in=num(room.W_in,0);
+  let poly=null;
+  if(Array.isArray(room.polygon)&&room.polygon.length>=3){
+    const bb0=polyBBox(room.polygon);
+    poly=room.polygon.map(p=>[Number(p[0])-bb0.xmin,Number(p[1])-bb0.ymin]);
+  }
+  if(poly){const bp=polyBBox(poly);L_in=bp.W;W_in=bp.H;}
+  if(!poly && L_in<W_in){const t=L_in;L_in=W_in;W_in=t;}
+  const o={tile1200:!!room.tile1200, rigid:!!room.frameRigid, standard:!!room.standardMode, poly};
+  const offX=num(room.offsetX,0), offY=num(room.offsetY,0), rotationDeg=num(room.rotation,0), rot90=!!room.rotate90;
+  let L=L_in, W=W_in;
+  if(poly){const bb=polyBBox(poly);L=bb.W;W=bb.H;}
+  else if(rot90){L=W_in;W=L_in;}
+  const totalRot=rotationDeg+(rot90?90:0);
+  const t=totalRot*Math.PI/180,c=Math.cos(t),s=Math.sin(t);
+  const offsetX=offX*c+offY*s, offsetY=-offX*s+offY*c;
+  let lay=buildLayout(L,W,offsetX,offsetY,totalRot,L_in,W_in,0,o);
+  if(!o.standard && !o.rigid){
+    const flip=buildLayout(L,W,offsetX,offsetY,totalRot,L_in,W_in,1,o);
+    if(flip.n3600<lay.n3600) lay=flip;
+  }
+  return {isArmstrong:true, L, W, L_in, W_in, totalRot, lay, polygon:poly, isPolygon:!!poly,
+    tile1200:o.tile1200, frameRigid:o.rigid,
+    perRailSegments:[], perStringerSegments:[],
+    innerSvg:(sc,ox,oy)=>inner2D(sc,ox,oy,{L,W,L_in,W_in,totalRot,lay}),
+    legendSvg:(w,h)=>legend2D(w,h,o.tile1200,lay)};
+}
+
+function inner2D(s,ox,oy,A){
+  const {L,W,L_in,W_in,totalRot,lay}=A;
+  const roomCx=ox+L_in*s/2, roomCy=oy+W_in*s/2;
+  let svg='<rect x="'+ox+'" y="'+oy+'" width="'+(L_in*s)+'" height="'+(W_in*s)+'" fill="#ffffff"/>';
+  svg+='<g transform="translate('+roomCx+' '+roomCy+') rotate('+totalRot+') translate('+(-L*s/2)+' '+(-W*s/2)+')">';
+  const gap=(TILE_CELL-TILE_PANEL)/2;
+  for(const tl of lay.tiles){
+    const tw=tl.w-2*gap, th=tl.h-2*gap; if(tw<=0||th<=0) continue;
+    svg+='<rect x="'+((tl.x0+gap)*s).toFixed(2)+'" y="'+((tl.y0+gap)*s).toFixed(2)+'" width="'+(tw*s).toFixed(2)+'" height="'+(th*s).toFixed(2)+'" fill="#f7f5f1" stroke="#ece6dc" stroke-width="0.6"/>';
+  }
+  const joints=[];
+  for(const it of lay.items){
+    let col,sw;
+    if(it.type===3600){col=COL_MAIN;sw=3;}else if(it.type===1200){col=COL_1200;sw=2;}else{col=COL_600;sw=1.6;}
+    let x1,y1,x2,y2;
+    if(it.ori==='h'){x1=it.x-it.len/2;x2=it.x+it.len/2;y1=y2=it.y;}else{x1=x2=it.x;y1=it.y-it.len/2;y2=it.y+it.len/2;}
+    svg+='<line x1="'+(x1*s).toFixed(2)+'" y1="'+(y1*s).toFixed(2)+'" x2="'+(x2*s).toFixed(2)+'" y2="'+(y2*s).toFixed(2)+'" stroke="'+col+'" stroke-width="'+sw+'"/>';
+    if(it.type===3600){const n=Math.ceil(it.len/MAIN_LENGTH);for(let q=1;q<n;q++)joints.push([x1+q*MAIN_LENGTH,it.y]);}
+  }
+  for(const [jx,jy] of joints) svg+='<circle cx="'+(jx*s).toFixed(2)+'" cy="'+(jy*s).toFixed(2)+'" r="3.5" fill="#ffd54f" stroke="#333" stroke-width="1"/>';
+  svg+='</g>';
+  return svg;
+}
+function legend2D(w,h,tile1200,lay){
+  const items=[[COL_MAIN,'Несущий 3600']];
+  if(lay.n1200>0) items.push([COL_1200,'Поперечный 1200']);
+  if(lay.n600>0) items.push([COL_600,'Поперечный 600']);
+  items.push(['#f7f5f1','Плита '+(tile1200?'1200×600':'600×600')]);
+  const itemW=150, total=items.length*itemW, x0=(w-total)/2, y=h-18;
+  let svg='';
+  items.forEach((it,i)=>{
+    const x=x0+i*itemW;
+    if(i===items.length-1) svg+='<rect x="'+x+'" y="'+(y-7)+'" width="18" height="12" fill="'+it[0]+'" stroke="#c9bfae"/>';
+    else svg+='<line x1="'+x+'" y1="'+y+'" x2="'+(x+18)+'" y2="'+y+'" stroke="'+it[0]+'" stroke-width="3"/>';
+    svg+='<text x="'+(x+24)+'" y="'+(y+4)+'" font-size="12" fill="#5a6a7a" font-family="Inter,Arial,sans-serif">'+it[1]+'</text>';
+  });
+  return svg;
+}
+
+function init3D(room, A, container){
+  if(!container || !container.clientWidth || !container.clientHeight){
+    setTimeout(()=>init3D(room, A, container), 150);
+    return null;
+  }
+  const canvas=document.createElement('canvas');
+  canvas.style.display='block';canvas.style.width='100%';canvas.style.height='100%';
+  container.innerHTML='';container.appendChild(canvas);
+  const CW=container.clientWidth||480, CH=container.clientHeight||300;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(CW,CH,false);
+  renderer.localClippingEnabled=true;
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(40,CW/CH,0.05,200);
+  const Lm=Math.max(A.L_in,1)/1000, Wm=Math.max(A.W_in,1)/1000;
+  const sz=Math.max(Lm,Wm,1);
+  camera.position.set(Lm*0.9, sz*0.75, Wm*1.2);
+  const controls=new OrbitControls(camera,canvas);
+  controls.enableDamping=true;controls.dampingFactor=0.06;
+  controls.autoRotate=true;controls.autoRotateSpeed=1.2;
+  controls.enableZoom=true;controls.enablePan=false;
+  controls.target.set(0,0.02,0);
+  scene.add(new THREE.AmbientLight(0xffffff,0.85));
+  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(5,10,5);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.4);d2.position.set(-6,6,-4);scene.add(d2);
+  const pivot=new THREE.Group();scene.add(pivot);
+  const xOff=-Lm/2, zOff=-Wm/2;
+  const {L,W,L_in,W_in,lay,polygon}=A;
+  const t=A.totalRot*Math.PI/180, ct=Math.cos(t), st=Math.sin(t);
+  const toDisp=(xg,yg)=>{const dx=xg-L/2,dy=yg-W/2;return[dx*ct-dy*st+L_in/2, dx*st+dy*ct+W_in/2];};
+  const clipPlanes = polygon ? [] : [
+    new THREE.Plane(new THREE.Vector3(1,0,0),Lm/2), new THREE.Plane(new THREE.Vector3(-1,0,0),Lm/2),
+    new THREE.Plane(new THREE.Vector3(0,0,1),Wm/2), new THREE.Plane(new THREE.Vector3(0,0,-1),Wm/2)];
+  const mk=(c)=>{const m=new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide});if(clipPlanes.length)m.clippingPlanes=clipPlanes;return m;};
+  const mMain=mk(0xd32f2f), m1200=mk(0x1976d2), m600=mk(0x43a047), mPlate=mk(0xfafafa);
+  // контур помещения
+  const outline=(polygon?polygon:[[0,0],[L_in,0],[L_in,W_in],[0,W_in]]).map(p=>new THREE.Vector3(p[0]/1000+xOff,0.001,p[1]/1000+zOff));
+  outline.push(outline[0].clone());
+  pivot.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(outline),new THREE.LineBasicMaterial({color:0xc49a6c})));
+  // плиты
+  const gapMM=(TILE_CELL-TILE_PANEL)/2, plateY=FLANGE_H+PLATE_T/2;
+  for(const tl of lay.tiles){
+    const tw=tl.w-2*gapMM, th=tl.h-2*gapMM; if(tw<=0||th<=0) continue;
+    const cx=tl.x0+tl.w/2, cy=tl.y0+tl.h/2;
+    if(polygon){
+      const probes=[[cx,cy]];
+      if(tl.w>tl.h) probes.push([cx-tl.w/4,cy],[cx+tl.w/4,cy]); else if(tl.h>tl.w) probes.push([cx,cy-tl.h/4],[cx,cy+tl.h/4]);
+      if(!probes.some(p=>{const d=toDisp(p[0],p[1]);return pointInPoly(polygon,d[0],d[1]);})) continue;
+    } else {
+      // плита целиком вне помещения — пропускаем
+      const corners=[[tl.x0,tl.y0],[tl.x0+tl.w,tl.y0],[tl.x0,tl.y0+tl.h],[tl.x0+tl.w,tl.y0+tl.h]].map(p=>toDisp(p[0],p[1]));
+      const xs=corners.map(p=>p[0]), ys=corners.map(p=>p[1]);
+      if(Math.max(...xs)<0||Math.min(...xs)>L_in||Math.max(...ys)<0||Math.min(...ys)>W_in) continue;
+    }
+    const d=toDisp(cx,cy);
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(tw/1000,PLATE_T,th/1000),mPlate);
+    mesh.position.set(d[0]/1000+xOff,plateY,d[1]/1000+zOff);
+    mesh.rotation.y=-t;
+    pivot.add(mesh);
+  }
+  // профили (отсечены по контуру помещения)
+  for(const it of lay.items){
+    const mat = it.type===3600?mMain:(it.type===1200?m1200:m600);
+    for(const sg of lay.clipItem(it)){
+      const dx=sg[2]-sg[0], dz=sg[3]-sg[1], len=Math.hypot(dx,dz);
+      if(len<MIN_VISIBLE*10) continue;
+      const g=new THREE.Group();
+      const f=new THREE.Mesh(new THREE.BoxGeometry(FLANGE_W,FLANGE_H,len/1000),mat);f.position.y=FLANGE_H/2;g.add(f);
+      const w=new THREE.Mesh(new THREE.BoxGeometry(WEB_W,WEB_H,len/1000),mat);w.position.y=FLANGE_H+WEB_H/2;g.add(w);
+      g.position.set((sg[0]+sg[2])/2000+xOff,0,(sg[1]+sg[3])/2000+zOff);
+      g.rotation.y=Math.atan2(dx,dz);
+      pivot.add(g);
+    }
+  }
+  let rafId,tt=0;
+  (function loop(){rafId=requestAnimationFrame(loop);tt+=0.016;pivot.position.y=Math.sin(tt*0.8)*0.02;controls.update();renderer.render(scene,camera);})();
+  return function dispose(){
+    cancelAnimationFrame(rafId);controls.dispose();renderer.dispose();
+    scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});
+  };
+}
+
+function statsHtml(room, A){
+  const areaRaw=num(room.areaM2,0);
+  const area=areaRaw>0?areaRaw:(num(room.L_in,0)*num(room.W_in,0))/1e6;
+  let h='';
+  if(room.polygon){
+    h+='<div class="row"><span class="lb">Форма</span><span class="vl">Непрямоугольная</span></div>';
+  } else {
+    h+='<div class="row"><span class="lb">Длина</span><span class="vl">'+A.L_in+' мм</span></div>';
+    h+='<div class="row"><span class="lb">Ширина</span><span class="vl">'+A.W_in+' мм</span></div>';
+  }
+  h+='<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2).replace('.',',')+' м²</span></div>';
+  h+='<div class="row"><span class="lb">Плита</span><span class="vl">'+(A.tile1200?'1200×600':'600×600')+'</span></div>';
+  h+='<div class="row"><span class="lb">Каркас</span><span class="vl">'+(A.frameRigid?'Жесткий':'Стандартный')+'</span></div>';
+  h+='<div class="row"><span class="lb">Несущие</span><span class="vl">через '+(A.frameRigid?600:1200)+' мм</span></div>';
+  return h;
+}
+
+return {layoutRoom, init3D, statsHtml};
+})();
+
+function isArmstrongRoom(room){ return !!(room && room.kind === 'armstrong'); }
+function getRoomLayout(room){ return isArmstrongRoom(room) ? ARM.layoutRoom(room) : recalcLayout(room); }
+
+
 /* ==================== РЕЙКИ ==================== */
 function isRailRow(row){
   if(row.unit === 'mp' || row.unit === 'м.п.') return true;
@@ -912,6 +1359,7 @@ function normalizeRailLabel(label){
 
 /* ==================== HTML КАРТОЧКИ ==================== */
 function buildRoomStatsHtml(room, layout){
+  if(layout && layout.isArmstrong) return ARM.statsHtml(room, layout);
   const areaRaw = num(room.areaM2, 0);
   const area = areaRaw > 0 ? areaRaw : (num(room.L_in,0) * num(room.W_in,0)) / 1e6;
   const isPoly = !!room.polygon;
@@ -1002,16 +1450,9 @@ function buildRoomRowsHtml(room, layout, paid){
       : '<span class="locked">После оплаты 🔒</span>';
     html += '<div class="row"><span class="label">'+escapeHtml(r.label)+'</span>'+right+'</div>';
 
-    // Извлекаем размер, но ТОЛЬКО если это строка с рейкой
-    const isRailRow = /^Рейка/i.test(r.label);
-    const sizeMatch = isRailRow ? r.label.match(/\s(\d+)\s*мм/) : null;
-    const currentSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
-
-    // Проверяем: оплачен, есть схема, это рейка, и текущая длина совпадает
     if(paid
+       && /\(объединено\)/i.test(r.label)
        && room.cuttingScheme
-       && isRailRow
-       && currentSize === Number(room.cuttingScheme.refSize)
        && Array.isArray(room.cuttingScheme.scheme)
        && room.cuttingScheme.scheme.length){
       html += renderCuttingSchemeKp(room.cuttingScheme.scheme, room.cuttingScheme.refSize);
@@ -1149,6 +1590,19 @@ kp.paidAt = raw.paidAt || null;
           unit: x.unit || 'шт.'
         }));
       }
+      // Армстронг: признак по типу КП, по полям помещения или по строкам спецификации
+      const armByFields = (r.tile1200 !== undefined) || (r.tileSize !== undefined) || (r.frameRigid !== undefined);
+      const armByRows = Array.isArray(r.rows) && r.rows.some(x => x && /Т-профиль|Плита потолочная|армстронг|armstrong/i.test(String(x.label||'')));
+      if(String(raw.type||'').toLowerCase() === 'armstrong' || r.kind === 'armstrong' || armByFields || armByRows){
+        room.kind = 'armstrong';
+        room.tile1200 = !!r.tile1200 || String(r.tileSize||'').indexOf('1200') === 0;
+        room.frameRigid = !!r.frameRigid;
+        room.standardMode = !!r.standardMode;
+        room.offsetX = num(r.offsetX, 0);
+        room.offsetY = num(r.offsetY, 0);
+        room.hangers = r.hangers;
+        room.hangerHeight = r.hangerHeight;
+      }
       return room;
     });
   } else {
@@ -1164,6 +1618,7 @@ kp.paidAt = raw.paidAt || null;
     }];
   }
   kp.rooms = rooms;
+  kp.isArmstrong = rooms.length > 0 && rooms.every(r => r.kind === 'armstrong');
   kp.areaTotal = rooms.reduce((s, r) => s + num(r.areaM2, 0), 0);
   return kp;
 }
@@ -1173,7 +1628,7 @@ function buildRoomsSectionHtml(kp){
   if(kp.rooms.length <= 1){
     const room = kp.rooms[0];
     room._showRailLengths = !!kp.paid;
-    const layout = recalcLayout(room);
+    const layout = getRoomLayout(room);
     const railHex = getRailHex(room.color);
     return '<div class="kp-section kp-observable">'+
       '<h2 class="kp-sec-title"><span class="kp-sec-num">2</span>Помещение</h2>'+
@@ -1188,7 +1643,7 @@ function buildRoomsSectionHtml(kp){
   let cards = '';
 kp.rooms.forEach((room, i) => {
   room._showRailLengths = !!kp.paid;
-  const layout = recalcLayout(room);
+  const layout = getRoomLayout(room);
     const railHex = getRailHex(room.color);
     cards +=
       '<div class="kp-room-card has-badge" data-room-idx="'+i+'">'+
@@ -1435,6 +1890,20 @@ if(pitchesSet.size === 1){
       '<div class="kp-stat"><div class="kp-stat-lb">Рейка</div><div class="kp-stat-vl" style="font-size:18px">'+escapeHtml(kp.railSpec)+'</div></div>' +
       '<div class="kp-stat"><div class="kp-stat-lb">Шаг рейки</div><div class="kp-stat-vl"><span data-count="'+kp.p.gap+'">0</span><small> мм</small></div></div>';
   }
+  if(kp.isArmstrong){
+    const st = (lb, vl, big) => '<div class="kp-stat"><div class="kp-stat-lb">'+lb+'</div><div class="kp-stat-vl"'+(big?'':' style="font-size:16px"')+'>'+vl+'</div></div>';
+    const areaSum = kp.areaTotal > 0 ? kp.areaTotal : kp.area;
+    statsHtml = '';
+    if(kp.rooms.length > 1) statsHtml += st('Помещений', kp.rooms.length, true);
+    else if(!kp.rooms[0].polygon) statsHtml += st('Размер', kp.rooms[0].L_in+'×'+kp.rooms[0].W_in+'<small> мм</small>');
+    else statsHtml += st('Форма', 'Непрямоугольная');
+    statsHtml += st(kp.rooms.length > 1 ? 'Общая площадь' : 'Площадь', '<span data-count="'+areaSum.toFixed(2)+'">0</span><small> м²</small>', true);
+    statsHtml += st('Система', 'Армстронг');
+    const tiles = new Set(kp.rooms.map(r => r.tile1200 ? '1200×600' : '600×600'));
+    statsHtml += st('Плита', Array.from(tiles).join(' / '));
+    const frames = new Set(kp.rooms.map(r => r.frameRigid ? 'Жесткий' : 'Стандартный'));
+    statsHtml += st('Каркас', Array.from(frames).join(' / '));
+  }
 
 const rowsHtml = kp.rows.length ? kp.rows.map(r => {
   const qty = num(r.qty, 0);
@@ -1472,8 +1941,8 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
     '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Скачать счёт PDF</button></div>'+
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
-    '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж рейки — <b>Сергей</b>.</div>'+
-    '<div class="kp-foot">© CUBICA.BY · Кубическая рейка · Контактное лицо: Вероника</div>';
+    '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж '+(kp.isArmstrong?'потолка Армстронг':'рейки')+' — <b>Сергей</b>.</div>'+
+    '<div class="kp-foot">© CUBICA.BY · '+(kp.isArmstrong?'Потолок Армстронг':'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
 
   document.getElementById('kp-content').innerHTML = html;
 
@@ -1532,7 +2001,7 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
           const idx = parseInt(el.getAttribute('data-room-3d'), 10);
           if(en.isIntersecting && !_initMap[idx]){
             const room = kp.rooms[idx];
-            const layout = recalcLayout(room);
+            const layout = getRoomLayout(room);
             try{
               const dispose = kpInit3D(room, layout, el);
               if(dispose) _initMap[idx] = dispose;
