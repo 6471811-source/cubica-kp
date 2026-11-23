@@ -454,6 +454,7 @@ function b64enc(s){
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function num(v, def){ const n = Number(v); return isFinite(n) ? n : def; }
+function fmtQtySmart(v){ const n=Number(v)||0; return Math.abs(n-Math.round(n))<1e-9 ? Math.round(n).toLocaleString('ru-RU') : n.toLocaleString('ru-RU',{maximumFractionDigits:3}); } // целые — без дробей, 0,2 тыс.шт — как есть
 function fmtNum0(v){ return Math.round(Number(v)||0).toLocaleString('ru-RU'); }
 function fmtInvoice(v){ return (Number(v)||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtMp(v){ return Number(v||0).toFixed(3).replace('.', ','); }
@@ -1468,7 +1469,7 @@ function buildRoomRowsHtml(room, layout, paid){
   for(const r of renderRows){
     const qty = r.qty;
     const unit = r.unit || 'шт.';
-    const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
+    const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtQtySmart(qty);
     const right = paid
       ? '<span class="value">'+qtyStr+' '+escapeHtml(unit)+'</span>'
       : '<span class="locked">После оплаты 🔒</span>';
@@ -1987,7 +1988,7 @@ if(pitchesSet.size === 1){
 const rowsHtml = kp.rows.length ? kp.rows.map(r => {
   const qty = num(r.qty, 0);
   const unit = r.unit || 'шт.';
-  const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtNum0(qty);
+  const qtyStr = (unit === 'м.п.' || unit === 'mp') ? fmtMp(qty) : fmtQtySmart(qty);
   let piecesHtml = '';
   if(kp.paid && r.pieces && typeof r.pieces === 'object'){
     const parts = Object.keys(r.pieces).map(size => {
