@@ -158,6 +158,22 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-btn.danger{background:linear-gradient(135deg,#c49a6c,#a87c4f);color:#fff;box-shadow:0 8px 24px rgba(196,154,108,.25)}
 .kp-btn.danger:hover{box-shadow:0 12px 32px rgba(196,154,108,.4)}
 .kp-btn.danger[disabled]{opacity:.6;cursor:wait;transform:none}
+.kp-btn.locked-btn,.kp-btn.locked-btn[disabled]{background:#e6e1d9;color:#8a8f96;box-shadow:none;cursor:not-allowed;opacity:1}
+.layout-render-host{position:fixed;left:-99999px;top:0;width:760px;pointer-events:none;z-index:-1}
+.lp-page{width:760px;background:#fff;padding:28px 32px;box-sizing:border-box;font-family:'Inter',Arial,sans-serif;color:#2c3e50}
+.lp-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #c49a6c;padding-bottom:10px;margin-bottom:14px}
+.lp-head .t{font-size:20px;font-weight:700}
+.lp-head .s{font-size:12px;color:#7a8a99;text-align:right;line-height:1.5}
+.lp-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:13px;margin-bottom:12px}
+.lp-stats .row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:3px 0}
+.lp-stats .lb{color:#7a8a99}.lp-stats .vl{font-weight:600}
+.lp-2d svg{width:100%;height:auto;display:block}
+.lp-spec{margin-top:14px}
+.lp-spec .title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7a8a99;font-weight:700;margin-bottom:6px}
+.lp-spec table{width:100%;border-collapse:collapse;font-size:13px}
+.lp-spec td{padding:6px 4px;border-bottom:1px solid #eee}
+.lp-spec td.q{text-align:right;font-weight:600;white-space:nowrap}
+.lp-foot{margin-top:14px;font-size:11px;color:#a0a8b0;text-align:center}
 .kp-btn.montage{background:#fff;color:#2c3e50;border:1px solid rgba(44,62,80,.2);box-shadow:0 4px 12px rgba(44,62,80,.04)}
 .kp-btn.montage:hover{background:#fdfcfb;border-color:#2c3e50}
 .kp-contacts{text-align:center;font-size:13px;color:#7a8a99;margin:16px 0 8px;line-height:1.7}
@@ -906,7 +922,7 @@ function kpInit3D(room, layout, container){
 const ARM = (function(){
 const TILE_CELL=600,TILE_PANEL=595,MAIN_LENGTH=3600;
 const WALL_TOL=1,MIN_VISIBLE=0.5;
-const COL_MAIN='#d32f2f',COL_1200='#1976d2',COL_600='#43a047';
+const COL_MAIN='#d32f2f',COL_1200='#1976d2',COL_600='#43a047',COL_MASK='#9aa3ad';
 const FLANGE_H=0.004,FLANGE_W=0.024,WEB_H=0.026,WEB_W=0.005,PLATE_T=0.012;
 function xIntervalsAtY(poly,y){const xs=[],n=poly.length;for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[0]-b[0])<1e-6){const y1=Math.min(a[1],b[1]),y2=Math.max(a[1],b[1]);if(y>=y1-0.01&&y<y2-0.01) xs.push(a[0]);}}xs.sort((p,q)=>p-q);const out=[];for(let i=0;i+1<xs.length;i+=2){const x1=xs[i],x2=xs[i+1];if(x2-x1>0.05) out.push([x1,x2]);}return out;}
 function yIntervalsAtX(poly,x){const ys=[],n=poly.length;for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];if(Math.abs(a[1]-b[1])<1e-6){const x1=Math.min(a[0],b[0]),x2=Math.max(a[0],b[0]);if(x>=x1-0.01&&x<x2-0.01) ys.push(a[1]);}}ys.sort((p,q)=>p-q);const out=[];for(let i=0;i+1<ys.length;i+=2){const y1=ys[i],y2=ys[i+1];if(y2-y1>0.05) out.push([y1,y2]);}return out;}
@@ -1190,15 +1206,16 @@ function layoutRoom(room){
     const flip=buildLayout(L,W,offsetX,offsetY,totalRot,L_in,W_in,1,o);
     if(flip.n3600<lay.n3600) lay=flip;
   }
+  const masked = !room._showRailLengths;
   return {isArmstrong:true, L, W, L_in, W_in, totalRot, lay, polygon:poly, isPolygon:!!poly,
-    tile1200:o.tile1200, frameRigid:o.rigid,
+    tile1200:o.tile1200, frameRigid:o.rigid, masked,
     perRailSegments:[], perStringerSegments:[],
-    innerSvg:(sc,ox,oy)=>inner2D(sc,ox,oy,{L,W,L_in,W_in,totalRot,lay}),
-    legendSvg:(w,h)=>legend2D(w,h,o.tile1200,lay)};
+    innerSvg:(sc,ox,oy)=>inner2D(sc,ox,oy,{L,W,L_in,W_in,totalRot,lay,masked}),
+    legendSvg:(w,h)=>legend2D(w,h,o.tile1200,lay,masked)};
 }
 
 function inner2D(s,ox,oy,A){
-  const {L,W,L_in,W_in,totalRot,lay}=A;
+  const {L,W,L_in,W_in,totalRot,lay,masked}=A;
   const roomCx=ox+L_in*s/2, roomCy=oy+W_in*s/2;
   let svg='<rect x="'+ox+'" y="'+oy+'" width="'+(L_in*s)+'" height="'+(W_in*s)+'" fill="#ffffff"/>';
   svg+='<g transform="translate('+roomCx+' '+roomCy+') rotate('+totalRot+') translate('+(-L*s/2)+' '+(-W*s/2)+')">';
@@ -1210,17 +1227,21 @@ function inner2D(s,ox,oy,A){
   const joints=[];
   for(const it of lay.items){
     let col,sw;
-    if(it.type===3600){col=COL_MAIN;sw=3;}else if(it.type===1200){col=COL_1200;sw=2;}else{col=COL_600;sw=1.6;}
+    if(masked){col=COL_MASK;sw=2;}
+    else if(it.type===3600){col=COL_MAIN;sw=3;}else if(it.type===1200){col=COL_1200;sw=2;}else{col=COL_600;sw=1.6;}
     let x1,y1,x2,y2;
     if(it.ori==='h'){x1=it.x-it.len/2;x2=it.x+it.len/2;y1=y2=it.y;}else{x1=x2=it.x;y1=it.y-it.len/2;y2=it.y+it.len/2;}
     svg+='<line x1="'+(x1*s).toFixed(2)+'" y1="'+(y1*s).toFixed(2)+'" x2="'+(x2*s).toFixed(2)+'" y2="'+(y2*s).toFixed(2)+'" stroke="'+col+'" stroke-width="'+sw+'"/>';
-    if(it.type===3600){const n=Math.ceil(it.len/MAIN_LENGTH);for(let q=1;q<n;q++)joints.push([x1+q*MAIN_LENGTH,it.y]);}
+    if(it.type===3600 && !masked){const n=Math.ceil(it.len/MAIN_LENGTH);for(let q=1;q<n;q++)joints.push([x1+q*MAIN_LENGTH,it.y]);}
   }
   for(const [jx,jy] of joints) svg+='<circle cx="'+(jx*s).toFixed(2)+'" cy="'+(jy*s).toFixed(2)+'" r="3.5" fill="#ffd54f" stroke="#333" stroke-width="1"/>';
   svg+='</g>';
   return svg;
 }
-function legend2D(w,h,tile1200,lay){
+function legend2D(w,h,tile1200,lay,masked){
+  if(masked){
+    return '<text x="'+(w/2)+'" y="'+(h-14)+'" text-anchor="middle" font-size="12" fill="#a87c4f" font-family="Inter,Arial,sans-serif">🔒 Типы профилей и места стыков откроются после оплаты</text>';
+  }
   const items=[[COL_MAIN,'Несущий 3600']];
   if(lay.n1200>0) items.push([COL_1200,'Поперечный 1200']);
   if(lay.n600>0) items.push([COL_600,'Поперечный 600']);
@@ -1271,7 +1292,7 @@ function init3D(room, A, container){
     new THREE.Plane(new THREE.Vector3(1,0,0),Lm/2), new THREE.Plane(new THREE.Vector3(-1,0,0),Lm/2),
     new THREE.Plane(new THREE.Vector3(0,0,1),Wm/2), new THREE.Plane(new THREE.Vector3(0,0,-1),Wm/2)];
   const mk=(c)=>{const m=new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide});if(clipPlanes.length)m.clippingPlanes=clipPlanes;return m;};
-  const mMain=mk(0xd32f2f), m1200=mk(0x1976d2), m600=mk(0x43a047), mPlate=mk(0xfafafa);
+  const mMain=mk(A.masked?0x9aa3ad:0xd32f2f), m1200=A.masked?mMain:mk(0x1976d2), m600=A.masked?mMain:mk(0x43a047), mPlate=mk(0xfafafa);
   // контур помещения
   const outline=(polygon?polygon:[[0,0],[L_in,0],[L_in,W_in],[0,W_in]]).map(p=>new THREE.Vector3(p[0]/1000+xOff,0.001,p[1]/1000+zOff));
   outline.push(outline[0].clone());
@@ -1846,6 +1867,60 @@ async function downloadInvoicePdf(kp){
   doc.save('CUBICA_' + (safeNo || 'invoice') + '.pdf');
 }
 
+/* ==================== PDF РАСКЛАДКИ (после оплаты) ==================== */
+async function downloadLayoutPdf(kp, onProgress){
+  if(!kp.paid){ alert('Раскладка доступна после оплаты'); return; }
+  if(!window.html2canvas){ alert('html2canvas не загружен'); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){ alert('jsPDF не загружен'); return; }
+  let host = document.getElementById('layoutRenderHost');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'layoutRenderHost';
+    host.className = 'layout-render-host';
+    document.body.appendChild(host);
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const PW = 210, PH = 297, MARGIN = 8;
+  const n = kp.rooms.length;
+  const dateStr = new Date().toLocaleDateString('ru-RU');
+  for(let i = 0; i < n; i++){
+    if(onProgress) onProgress(i+1, n);
+    const room = kp.rooms[i];
+    room._showRailLengths = true;
+    const layout = getRoomLayout(room);
+    const rows = (room.rows && room.rows.length ? room.rows : (n === 1 ? kp.rows : []));
+    const rowsHtml = rows.length
+      ? rows.map(r => '<tr><td>'+escapeHtml(r.label)+'</td><td class="q">'+String(num(r.qty,0)).replace('.',',')+' '+escapeHtml(r.unit||'шт.')+'</td></tr>').join('')
+      : '<tr><td colspan="2" style="color:#a0a8b0">Нет позиций</td></tr>';
+    host.innerHTML =
+      '<div class="lp-page">'+
+        '<div class="lp-head"><div class="t">'+(n>1?(i+1)+'. ':'')+escapeHtml(room.name || ('Помещение '+(i+1)))+'</div>'+
+          '<div class="s">Раскладка '+(kp.isArmstrong?'потолка Армстронг':'потолка CUBICA')+'<br>'+escapeHtml(kp.invoiceNumber||'')+' · '+dateStr+'</div></div>'+
+        '<div class="lp-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
+        '<div class="lp-2d">'+kpBuild2DScheme(layout, getRailHex(room.color))+'</div>'+
+        '<div class="lp-spec"><div class="title">Спецификация помещения</div><table>'+rowsHtml+'</table></div>'+
+        '<div class="lp-foot">© CUBICA.BY · Лист '+(i+1)+' из '+n+'</div>'+
+      '</div>';
+    const target = host.querySelector('.lp-page');
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 80));
+    const canvas = await window.html2canvas(target, {
+      scale: 2, backgroundColor:'#ffffff', useCORS:true, logging:false,
+      width: target.offsetWidth, height: target.offsetHeight,
+      windowWidth: target.offsetWidth, windowHeight: target.offsetHeight
+    });
+    if(i > 0) doc.addPage();
+    let imgW = PW - MARGIN*2;
+    let imgH = imgW * (canvas.height / canvas.width);
+    if(imgH > PH - MARGIN*2){ imgH = PH - MARGIN*2; imgW = imgH * (canvas.width / canvas.height); }
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (PW - imgW)/2, MARGIN, imgW, imgH, undefined, 'FAST');
+  }
+  host.innerHTML = '';
+  const safeNo = String(kp.invoiceNumber || '').replace(/СЧ/g,'SCH').replace(/[^\w\-]/g,'');
+  doc.save('CUBICA_raskladka_' + (safeNo || 'kp') + '.pdf');
+}
+
 /* ==================== РЕНДЕР КП ==================== */
 function renderKp(kp){
   const validUntil = kp.valid || getValidUntil();
@@ -1938,13 +2013,30 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
 
     '<div class="kp-section kp-observable"><div class="kp-total"><div class="kp-total-lb">Итоговая стоимость с НДС</div><div class="kp-total-vl"><span data-count="'+kp.price+'" data-decimals="2">0</span><small>BYN</small></div><div style="margin-top:12px;font-size:13px;color:#7a8a99">Цена включает материалы, доставку, раскладку</div></div><div style="text-align:center"><span class="kp-valid">Предложение действительно до '+validUntil+'</span></div></div>'+
 
-    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Скачать счёт PDF</button></div>'+
+    '<div class="kp-actions"><a class="kp-btn secondary" href="tel:+375447527073">📞 Позвонить</a><button class="kp-btn danger" id="btnInvoicePdf" type="button">📄 Скачать счёт PDF</button>'+
+      (kp.paid
+        ? '<button class="kp-btn danger" id="btnLayoutPdf" type="button">📐 Скачать раскладку</button>'
+        : '<button class="kp-btn danger locked-btn" id="btnLayoutPdf" type="button" disabled title="Раскладка станет доступна после оплаты">🔒 Скачать раскладку</button>')+
+    '</div>'+
+    (kp.paid ? '' : '<div class="kp-contacts" style="margin-top:4px">Раскладка по помещениям станет доступна после оплаты</div>')+
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
     '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж '+(kp.isArmstrong?'потолка Армстронг':'рейки')+' — <b>Сергей</b>.</div>'+
     '<div class="kp-foot">© CUBICA.BY · '+(kp.isArmstrong?'Потолок Армстронг':'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
 
   document.getElementById('kp-content').innerHTML = html;
+
+  const btnLayout = document.getElementById('btnLayoutPdf');
+  if(btnLayout && kp.paid){
+    btnLayout.addEventListener('click', async () => {
+      btnLayout.disabled = true;
+      const old = btnLayout.textContent;
+      btnLayout.textContent = '⏳ Готовим раскладку...';
+      try{ await downloadLayoutPdf(kp, (i,n)=>{ btnLayout.textContent = '⏳ Помещение '+i+' из '+n+'...'; }); }
+      catch(e){ console.error('Layout PDF err', e); alert('Ошибка: ' + e.message); }
+      finally { btnLayout.disabled = false; btnLayout.textContent = old; }
+    });
+  }
 
   const btnInvoice = document.getElementById('btnInvoicePdf');
   if(btnInvoice){
