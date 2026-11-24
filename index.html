@@ -923,7 +923,8 @@ function kpInit3D(room, layout, container){
    Раскладка перенесена из калькулятора Армстронга 1:1 (buildLayout),
    чтобы КП рисовало ровно то же, что видел менеджер. */
 const ARM = (function(){
-const TILE_CELL=600,TILE_PANEL=595,MAIN_LENGTH=3600;
+const TILE_CELL=600,TILE_PANEL=595;
+let MAIN_LENGTH=3600; // грильято классический — 2400
 const WALL_TOL=1,MIN_VISIBLE=0.5;
 const COL_MAIN='#d32f2f',COL_1200='#1976d2',COL_600='#43a047',COL_MASK='#9aa3ad';
 const FLANGE_H=0.004,FLANGE_W=0.024,WEB_H=0.026,WEB_W=0.005,PLATE_T=0.012;
@@ -1197,6 +1198,7 @@ function layoutRoom(room){
   if(poly){const bp=polyBBox(poly);L_in=bp.W;W_in=bp.H;}
   if(!poly && L_in<W_in){const t=L_in;L_in=W_in;W_in=t;}
   const o={tile1200:!!room.tile1200, rigid:!!room.frameRigid, standard:!!room.standardMode, poly};
+  MAIN_LENGTH = (room.grilyato && room.grSys && room.grSys !== 'gl15') ? 2400 : 3600;
   const offX=num(room.offsetX,0), offY=num(room.offsetY,0), rotationDeg=num(room.rotation,0), rot90=!!room.rotate90;
   let L=L_in, W=W_in;
   if(poly){const bb=polyBBox(poly);L=bb.W;W=bb.H;}
@@ -1213,8 +1215,8 @@ function layoutRoom(room){
   return {isArmstrong:true, L, W, L_in, W_in, totalRot, lay, polygon:poly, isPolygon:!!poly,
     tile1200:o.tile1200, frameRigid:o.rigid, masked,
     perRailSegments:[], perStringerSegments:[],
-    innerSvg:(sc,ox,oy)=>inner2D(sc,ox,oy,{L,W,L_in,W_in,totalRot,lay,masked}),
-    legendSvg:(w,h)=>legend2D(w,h,o.tile1200,lay,masked)};
+    innerSvg:(sc,ox,oy)=>{MAIN_LENGTH=(room.grilyato&&room.grSys&&room.grSys!=='gl15')?2400:3600;return inner2D(sc,ox,oy,{L,W,L_in,W_in,totalRot,lay,masked,grCell:room.grilyato?(num(room.grCell,100)||100):0});},
+    legendSvg:(w,h)=>{MAIN_LENGTH=(room.grilyato&&room.grSys&&room.grSys!=='gl15')?2400:3600;return legend2D(w,h,o.tile1200,lay,masked,room.grilyato?(num(room.grCell,100)||100):0);}};
 }
 
 function inner2D(s,ox,oy,A){
@@ -1226,6 +1228,12 @@ function inner2D(s,ox,oy,A){
   for(const tl of lay.tiles){
     const tw=tl.w-2*gap, th=tl.h-2*gap; if(tw<=0||th<=0) continue;
     svg+='<rect x="'+((tl.x0+gap)*s).toFixed(2)+'" y="'+((tl.y0+gap)*s).toFixed(2)+'" width="'+(tw*s).toFixed(2)+'" height="'+(th*s).toFixed(2)+'" fill="#f7f5f1" stroke="#ece6dc" stroke-width="0.6"/>';
+    if(A.grCell){ // ячейки решётки грильято
+      let pth='';
+      for(let q=A.grCell;q<tl.w-1;q+=A.grCell){const x=(tl.x0+q)*s;pth+='M'+x.toFixed(1)+' '+(tl.y0*s).toFixed(1)+'V'+((tl.y0+tl.h)*s).toFixed(1);}
+      for(let q=A.grCell;q<tl.h-1;q+=A.grCell){const y=(tl.y0+q)*s;pth+='M'+(tl.x0*s).toFixed(1)+' '+y.toFixed(1)+'H'+((tl.x0+tl.w)*s).toFixed(1);}
+      if(pth) svg+='<path d="'+pth+'" stroke="#cfc6b8" stroke-width="0.5" fill="none"/>';
+    }
   }
   const joints=[];
   for(const it of lay.items){
@@ -1241,14 +1249,14 @@ function inner2D(s,ox,oy,A){
   svg+='</g>';
   return svg;
 }
-function legend2D(w,h,tile1200,lay,masked){
+function legend2D(w,h,tile1200,lay,masked,grCell){
   if(masked){
     return '<text x="'+(w/2)+'" y="'+(h-14)+'" text-anchor="middle" font-size="12" fill="#a87c4f" font-family="Inter,Arial,sans-serif">🔒 Типы профилей и места стыков откроются после оплаты</text>';
   }
-  const items=[[COL_MAIN,'Несущий 3600']];
+  const items=[[COL_MAIN,'Несущий '+MAIN_LENGTH]];
   if(lay.n1200>0) items.push([COL_1200,'Поперечный 1200']);
   if(lay.n600>0) items.push([COL_600,'Поперечный 600']);
-  items.push(['#f7f5f1','Плита '+(tile1200?'1200×600':'600×600')]);
+  items.push(['#f7f5f1',grCell?('Решётка 600×600, ячейка '+grCell):('Плита '+(tile1200?'1200×600':'600×600'))]);
   const itemW=150, total=items.length*itemW, x0=(w-total)/2, y=h-18;
   let svg='';
   items.forEach((it,i)=>{
@@ -1354,7 +1362,8 @@ function statsHtml(room, A){
     h+='<div class="row"><span class="lb">Ширина</span><span class="vl">'+A.W_in+' мм</span></div>';
   }
   h+='<div class="row"><span class="lb">Площадь</span><span class="vl">'+area.toFixed(2).replace('.',',')+' м²</span></div>';
-  h+='<div class="row"><span class="lb">Плита</span><span class="vl">'+(A.tile1200?'1200×600':'600×600')+'</span></div>';
+  if(room.grilyato) h+='<div class="row"><span class="lb">Решётка</span><span class="vl">600×600, ячейка '+(room.grCell||100)+'</span></div>';
+  else h+='<div class="row"><span class="lb">Плита</span><span class="vl">'+(A.tile1200?'1200×600':'600×600')+'</span></div>';
   h+='<div class="row"><span class="lb">Каркас</span><span class="vl">'+(A.frameRigid?'Жесткий':'Стандартный')+'</span></div>';
   h+='<div class="row"><span class="lb">Несущие</span><span class="vl">через '+(A.frameRigid?600:1200)+' мм</span></div>';
   return h;
@@ -1632,6 +1641,17 @@ kp.paidAt = raw.paidAt || null;
         room.hangers = r.hangers;
         room.hangerHeight = r.hangerHeight;
       }
+      // Грильято: рисуется как Армстронг (сетка 600×600), вместо плиты — решётка
+      const grByRows = Array.isArray(r.rows) && r.rows.some(x => x && /^gr\./.test(String(x.role||'')));
+      if(String(raw.type||'').toLowerCase() === 'grilyato' || r.system === 'grilyato' || r.grSys || grByRows){
+        room.kind = 'armstrong';
+        room.grilyato = true;
+        room.tile1200 = false;
+        room.grSys = r.grSys || 'gl15';
+        room.grCell = num(r.grCell, 100) || 100;
+        room.grColor = r.grColor || '';
+        room.grRal = r.grRal || '';
+      }
       return room;
     });
   } else {
@@ -1648,6 +1668,8 @@ kp.paidAt = raw.paidAt || null;
   }
   kp.rooms = rooms;
   kp.isArmstrong = rooms.length > 0 && rooms.every(r => r.kind === 'armstrong');
+  kp.isGrilyato = kp.isArmstrong && rooms.every(r => r.grilyato);
+  kp.sysName = kp.isGrilyato ? 'Грильято' : 'Армстронг';
   kp.areaTotal = rooms.reduce((s, r) => s + num(r.areaM2, 0), 0);
   return kp;
 }
@@ -1904,7 +1926,7 @@ async function downloadLayoutPdf(kp, onProgress){
     host.innerHTML =
       '<div class="lp-page">'+
         '<div class="lp-head"><div class="t">'+(n>1?(i+1)+'. ':'')+escapeHtml(room.name || ('Помещение '+(i+1)))+'</div>'+
-          '<div class="s">Раскладка '+(kp.isArmstrong?'потолка Армстронг':'потолка CUBICA')+'<br>'+escapeHtml(kp.invoiceNumber||'')+' · '+dateStr+'</div></div>'+
+          '<div class="s">Раскладка '+(kp.isArmstrong?'потолка '+kp.sysName:'потолка CUBICA')+'<br>'+escapeHtml(kp.invoiceNumber||'')+' · '+dateStr+'</div></div>'+
         '<div class="lp-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
         '<div class="lp-2d">'+kpBuild2DScheme(layout, getRailHex(room.color))+'</div>'+
         '<div class="lp-spec"><div class="title">Спецификация помещения</div><table>'+rowsHtml+'</table></div>'+
@@ -1981,9 +2003,17 @@ if(pitchesSet.size === 1){
     else if(!kp.rooms[0].polygon) statsHtml += st('Размер', kp.rooms[0].L_in+'×'+kp.rooms[0].W_in+'<small> мм</small>');
     else statsHtml += st('Форма', 'Непрямоугольная');
     statsHtml += st(kp.rooms.length > 1 ? 'Общая площадь' : 'Площадь', '<span data-count="'+areaSum.toFixed(2)+'">0</span><small> м²</small>', true);
+    if(kp.isGrilyato){
+      const GN={gl15:'GL15',cl27:'Классический 27',cl40:'Классический 40'};
+      statsHtml += st('Система', 'Грильято ' + Array.from(new Set(kp.rooms.map(r => GN[r.grSys]||'GL15'))).join(' / '));
+      statsHtml += st('Ячейка', Array.from(new Set(kp.rooms.map(r => r.grCell+'×'+r.grCell))).join(' / ')+'<small> мм</small>');
+      const CN={'9003':'RAL 9003','7004':'RAL 7004','9005':'RAL 9005'};
+      statsHtml += st('Цвет', Array.from(new Set(kp.rooms.map(r => r.grColor==='ral' ? 'RAL '+(r.grRal||'под заказ') : (CN[r.grColor]||'—')))).join(' / '));
+    } else {
     statsHtml += st('Система', 'Армстронг');
     const tiles = new Set(kp.rooms.map(r => r.tile1200 ? '1200×600' : '600×600'));
     statsHtml += st('Плита', Array.from(tiles).join(' / '));
+    }
     const frames = new Set(kp.rooms.map(r => r.frameRigid ? 'Жесткий' : 'Стандартный'));
     statsHtml += st('Каркас', Array.from(frames).join(' / '));
   }
@@ -2029,8 +2059,8 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
     (kp.paid ? '' : '<div class="kp-contacts" style="margin-top:4px">Раскладка по помещениям станет доступна после оплаты</div>')+
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
-    '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж '+(kp.isArmstrong?'потолка Армстронг':'рейки')+' — <b>Сергей</b>.</div>'+
-    '<div class="kp-foot">© CUBICA.BY · '+(kp.isArmstrong?'Потолок Армстронг':'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
+    '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж '+(kp.isArmstrong?'потолка '+kp.sysName:'рейки')+' — <b>Сергей</b>.</div>'+
+    '<div class="kp-foot">© CUBICA.BY · '+(kp.isArmstrong?'Потолок '+kp.sysName:'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
 
   document.getElementById('kp-content').innerHTML = html;
 
