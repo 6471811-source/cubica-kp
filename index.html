@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 /* ===== Заставка Armstrong.by ===== */
-#arm-splash{display:none;position:fixed;inset:0;z-index:9999;background:#f8f6f2;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .8s ease,visibility .8s ease}
+#arm-splash{display:none;position:fixed;inset:0;z-index:9999;background:#f8f6f2;align-items:center;justify-content:center;overflow:hidden;transition:opacity .8s ease,visibility .8s ease}
 #arm-splash.hide{opacity:0;visibility:hidden;pointer-events:none}
 #arm-splash .arm-logo{display:flex;align-items:flex-end;font-size:min(9vw,130px);font-family:'Montserrat',Arial,sans-serif;line-height:1;color:#111;transform:scale(1.12);opacity:0}
 #arm-splash.play .arm-logo{animation:armZoom 3.2s cubic-bezier(.1,.9,.35,1) forwards}
@@ -443,6 +443,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     }, ms);
   }
   function playCubica(){
+    arm.style.display = 'none';
     svg.classList.add('play');
     hideEl(splash, 5200);
   }
