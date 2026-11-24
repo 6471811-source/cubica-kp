@@ -12,8 +12,48 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
+/* ===== Заставка Armstrong.by ===== */
+#arm-splash{display:none;position:fixed;inset:0;z-index:9999;background:#f8f6f2;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .8s ease,visibility .8s ease}
+#arm-splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+#arm-splash .arm-logo{display:flex;align-items:flex-end;font-size:min(9vw,130px);font-family:'Montserrat',Arial,sans-serif;line-height:1;color:#111;transform:scale(1.12);opacity:0}
+#arm-splash.play .arm-logo{animation:armZoom 3.2s cubic-bezier(.1,.9,.35,1) forwards}
+@keyframes armZoom{0%{transform:scale(1.12);opacity:0}10%{opacity:1}100%{transform:scale(1);opacity:1}}
+
+/* знак: кружок + буква А */
+#arm-splash .arm-sign{width:1.02em;height:1.02em;flex:0 0 auto;margin-right:-.02em;margin-bottom:-.02em;overflow:visible}
+#arm-splash .arm-ring{fill:none;stroke:#111;stroke-width:10;stroke-linecap:round;stroke-dasharray:330;stroke-dashoffset:330;transform:rotate(-90deg);transform-origin:60px 60px}
+#arm-splash .arm-logo{will-change:transform,opacity}
+#arm-splash .arm-a{fill:none;stroke:#111;stroke-width:17;stroke-linejoin:miter;stroke-miterlimit:10}
+#arm-splash .arm-bar{fill:none;stroke:#111;stroke-width:12}
+/* буква А «вырастает» снизу вверх через маску — без пунктира, поэтому не дрожит */
+#arm-splash .arm-wipe{transform-box:view-box;transform-origin:50% 100%;transform:scaleY(0)}
+#arm-splash.play .arm-ring{animation:armDraw 1.3s cubic-bezier(.65,0,.35,1) .25s forwards}
+#arm-splash.play .arm-wipe{animation:armWipe 1.1s cubic-bezier(.65,0,.35,1) 1.05s forwards}
+@keyframes armWipe{to{transform:scaleY(1)}}
+@keyframes armDraw{to{stroke-dashoffset:0}}
+
+/* надпись: буквы проявляются по одной, как у CUBICA */
+#arm-splash .arm-word{display:flex;font-weight:800;letter-spacing:-.045em;padding-bottom:.035em}
+#arm-splash .arm-word span{display:inline-block;opacity:0;transform:translateX(-.25em)}
+#arm-splash.play .arm-word span{animation:armLetter 1.1s cubic-bezier(.3,0,.05,1) forwards}
+@keyframes armLetter{0%{opacity:0;filter:blur(14px);transform:translateX(-.25em)}40%{opacity:.5;filter:blur(6px)}100%{opacity:1;filter:blur(0);transform:translateX(0)}}
+
+/* .BY — выезжает справа после надписи */
+#arm-splash .arm-by{display:flex;align-items:flex-end;font-weight:800;font-size:.8em;letter-spacing:-.03em;margin-left:.05em;padding-bottom:.044em;/* высота BY = высоте строчных rmstrong */opacity:0;transform:translateX(.6em)}
+#arm-splash .arm-by .dot{display:inline-block;width:.2em;height:.2em;background:#111;border-radius:50%;margin-right:.08em;margin-bottom:.02em;transform:scale(0)}
+#arm-splash.play .arm-by{animation:armBy .7s cubic-bezier(.2,.9,.3,1.2) 3.35s forwards}
+#arm-splash.play .arm-by .dot{animation:armDot .45s cubic-bezier(.3,1.6,.5,1) 3.75s forwards}
+@keyframes armBy{to{opacity:1;transform:translateX(0)}}
+@keyframes armDot{to{transform:scale(1)}}
+
+/* тонкая линия-подчёркивание в конце */
+#arm-splash .arm-line{position:absolute;left:50%;top:calc(50% + min(7.5vw,102px));height:2px;width:0;background:#111;transform:translateX(-50%);opacity:.25}
+#arm-splash.play .arm-line{animation:armLine 1s cubic-bezier(.65,0,.35,1) 4.05s forwards}
+@keyframes armLine{to{width:min(62vw,840px)}}
+
+
 /* ============ ЗАСТАВКА ============ */
 #splash{position:fixed;inset:0;z-index:9999;background:#f8f6f2;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .8s ease,visibility .8s ease}
 #splash.hide{opacity:0;visibility:hidden;pointer-events:none}
@@ -64,6 +104,7 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 .kp-hero{text-align:center;padding:20px 0 40px}
 .kp-logo-scope{display:block;width:360px;max-width:90%;margin:0 auto 16px auto}
 .kp-logo-scope svg{width:100%;height:auto;display:block;margin:0 auto}
+.kp-logo-scope.arm{width:400px;color:#111;margin-bottom:22px}
 .kp-h1{font-family:'Playfair Display',serif;font-size:48px;font-weight:600;color:#2c3e50;margin:0 0 12px;opacity:0;animation:kpSlideUp .8s .8s ease-out forwards;line-height:1.15}
 .kp-h2{font-size:14px;color:#7a8a99;font-weight:500;margin:0;letter-spacing:2.5px;text-transform:uppercase;opacity:0;animation:kpSlideUp .8s 1s ease-out forwards}
 .kp-client{margin-top:24px;font-size:15px;color:#c49a6c;opacity:0;animation:kpSlideUp .8s 1.2s ease-out forwards;font-weight:500}
@@ -202,6 +243,8 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 }
 .pv-panel{width:230px;padding:18px 12px 14px;display:flex;flex-direction:column;position:relative;background:#fff;color:#1a1a1a;border-right:2px solid #e10004;z-index:2;flex-shrink:0}
 .pv-panel .pv-logo-svg{width:100%;height:auto;display:block;margin-bottom:14px}
+.pv-panel .pv-logo-svg.arm{padding:10px 4px 6px;color:#111}
+.pv-panel .pv-logo-svg.arm svg{width:100%;height:auto;display:block}
 .pv-panel-company{font-size:12px;font-weight:800;margin-bottom:5px;color:#000}
 .pv-panel-req{font-size:9px;line-height:1.5;color:#333}
 .pv-panel-req div{margin-bottom:2px;word-break:break-word}
@@ -278,6 +321,25 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 <body>
 
 <!-- ===================== ЗАСТАВКА ===================== -->
+<div id="arm-splash">
+  <div class="arm-logo">
+    <svg class="arm-sign" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <clipPath id="arm-in"><circle cx="60" cy="60" r="55"/></clipPath>
+        <mask id="arm-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect class="arm-wipe" x="0" y="0" width="120" height="120" fill="#fff"/></mask>
+      </defs>
+      <circle class="arm-ring" cx="60" cy="60" r="52"/>
+      <g clip-path="url(#arm-in)" mask="url(#arm-mask)">
+        <path class="arm-a" d="M22 118 L60 21 L98 118"/>
+        <path class="arm-bar" d="M41 80 H79"/>
+      </g>
+    </svg>
+    <div class="arm-word" id="arm-word">rmstrong</div>
+    <div class="arm-by"><span class="dot"></span>BY</div>
+  </div>
+  <div class="arm-line"></div>
+</div>
+
 <div id="splash">
   <div class="logo-wrap">
     <svg id="logoSvg" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 316.2 113.2335483871" preserveAspectRatio="xMidYMid meet" xml:space="preserve">
@@ -367,25 +429,50 @@ body{font-family:'Inter',sans-serif;background:#f8f6f2;color:#2c3e50;overflow-x:
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ==================== ЗАСТАВКА ==================== */
+/* Заставка выбирается по бренду КП: Armstrong.by — если КП посчитан в калькуляторе Армстронга,
+   иначе CUBICA. Бренд известен после чтения данных, поэтому запуск — из init() (с запасным таймером). */
 (function(){
   var svg = document.getElementById('logoSvg');
   var splash = document.getElementById('splash');
+  var arm = document.getElementById('arm-splash');
   var played = false;
-  function play(){
+  function hideEl(el, ms){
+    setTimeout(function(){
+      el.classList.add('hide');
+      setTimeout(function(){ el.style.display = 'none'; }, 900);
+    }, ms);
+  }
+  function playCubica(){
+    svg.classList.add('play');
+    hideEl(splash, 5200);
+  }
+  function playArmstrong(){
+    var word = document.getElementById('arm-word');
+    word.innerHTML = word.textContent.split('').map(function(ch, i){
+      return '<span style="animation-delay:' + (2.2 + i * 0.12).toFixed(2) + 's">' + ch + '</span>';
+    }).join('');
+    arm.style.display = 'flex';
+    splash.style.display = 'none';
+    var go = function(){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ arm.classList.add('play'); hideEl(arm, 5600); }); }); };
+    var fr = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    var done = false;
+    var once = function(){ if(!done){ done = true; go(); } };
+    fr.then(once); setTimeout(once, 1200);
+  }
+  window.kpSplash = function(brand){
     if(played) return;
     played = true;
-    svg.classList.add('play');
-    setTimeout(function(){
-      splash.classList.add('hide');
-      setTimeout(function(){ splash.style.display = 'none'; }, 900);
-    }, 5200);
-  }
-  requestAnimationFrame(function(){ requestAnimationFrame(play); });
-  setTimeout(function(){ if(!played) play(); }, 1000);
+    if(brand === 'armstrong') playArmstrong();
+    else requestAnimationFrame(function(){ requestAnimationFrame(playCubica); });
+  };
+  // если данные не пришли за 4 с — показываем CUBICA
+  setTimeout(function(){ window.kpSplash('cubica'); }, 4000);
 })();
 
 /* ==================== ЛОГОТИП ДЛЯ ШАПКИ ==================== */
-function kpHeaderLogoSvg(){
+const KP_ARM_LOGO_SVG = '<svg class="kp-arm-logo" xmlns="http://www.w3.org/2000/svg" viewBox="-10 -840 7030 1080" fill="currentColor"><g transform="translate(0 -823.5) scale(8.5)"><defs><clipPath id="kpArmClip"><circle cx="60" cy="60" r="55"/></clipPath></defs><circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="10"/><g clip-path="url(#kpArmClip)" fill="none" stroke="currentColor" stroke-linejoin="miter" stroke-miterlimit="10"><path d="M22 118 L60 21 L98 118" stroke-width="17"/><path d="M41 80 H79" stroke-width="12"/></g></g><path d="M1061 0V-542H1242V-384L1215 -429Q1239 -490 1293 -520.5Q1347 -551 1424 -551V-380Q1411 -382 1401.5 -382.5Q1392 -383 1381 -383Q1323 -383 1287 -351.5Q1251 -320 1251 -249V0ZM1457 0V-542H1638V-391L1602 -434Q1632 -492 1684 -521.5Q1736 -551 1800 -551Q1873 -551 1928.5 -513.5Q1984 -476 2003 -397L1941 -410Q1970 -476 2028.5 -513.5Q2087 -551 2163 -551Q2226 -551 2275.5 -525.5Q2325 -500 2353.5 -447Q2382 -394 2382 -310V0H2192V-279Q2192 -337 2170 -363.5Q2148 -390 2110 -390Q2083 -390 2061 -377Q2039 -364 2027 -337.5Q2015 -311 2015 -269V0H1825V-279Q1825 -337 1803.5 -363.5Q1782 -390 1743 -390Q1715 -390 1693.5 -377Q1672 -364 1659.5 -337.5Q1647 -311 1647 -269V0ZM2654 9Q2585 9 2519.5 -7Q2454 -23 2414 -47L2471 -177Q2509 -154 2560 -140.5Q2611 -127 2660 -127Q2708 -127 2726.5 -137Q2745 -147 2745 -164Q2745 -180 2727.5 -187.5Q2710 -195 2681.5 -199Q2653 -203 2619 -208Q2585 -213 2550.5 -221.5Q2516 -230 2487.5 -247.5Q2459 -265 2442 -295Q2425 -325 2425 -371Q2425 -423 2455.5 -463.5Q2486 -504 2545 -527.5Q2604 -551 2689 -551Q2746 -551 2804.5 -539.5Q2863 -528 2903 -505L2846 -376Q2806 -399 2766 -407.5Q2726 -416 2690 -416Q2642 -416 2622.5 -405Q2603 -394 2603 -378Q2603 -362 2620 -353.5Q2637 -345 2665.5 -340.5Q2694 -336 2728 -331.5Q2762 -327 2796.5 -318Q2831 -309 2859.5 -291.5Q2888 -274 2905 -244.5Q2922 -215 2922 -169Q2922 -119 2891.5 -79Q2861 -39 2801.5 -15Q2742 9 2654 9ZM3201 9Q3097 9 3039 -42.5Q2981 -94 2981 -198V-663H3171V-200Q3171 -171 3187 -154.5Q3203 -138 3228 -138Q3262 -138 3286 -155L3333 -22Q3309 -6 3274 1.5Q3239 9 3201 9ZM2902 -401V-542H3295V-401ZM3361 0V-542H3542V-384L3515 -429Q3539 -490 3593 -520.5Q3647 -551 3724 -551V-380Q3711 -382 3701.5 -382.5Q3692 -383 3681 -383Q3623 -383 3587 -351.5Q3551 -320 3551 -249V0ZM4024 9Q3935 9 3866 -27Q3797 -63 3757.5 -126.5Q3718 -190 3718 -272Q3718 -354 3757.5 -417Q3797 -480 3866 -515.5Q3935 -551 4024 -551Q4113 -551 4182.5 -515.5Q4252 -480 4291 -417Q4330 -354 4330 -272Q4330 -190 4291 -126.5Q4252 -63 4182.5 -27Q4113 9 4024 9ZM4024 -142Q4057 -142 4082.5 -157Q4108 -172 4123 -201.5Q4138 -231 4138 -272Q4138 -313 4123 -341.5Q4108 -370 4082.5 -385Q4057 -400 4024 -400Q3992 -400 3966.5 -385Q3941 -370 3925.5 -341.5Q3910 -313 3910 -272Q3910 -231 3925.5 -201.5Q3941 -172 3966.5 -157Q3992 -142 4024 -142ZM4373 0V-542H4554V-388L4519 -433Q4550 -492 4604 -521.5Q4658 -551 4726 -551Q4789 -551 4840 -525.5Q4891 -500 4920.5 -447Q4950 -394 4950 -310V0H4760V-279Q4760 -337 4736.5 -363.5Q4713 -390 4671 -390Q4641 -390 4616 -376.5Q4591 -363 4577 -335Q4563 -307 4563 -262V0ZM5296 203Q5218 203 5147.5 185Q5077 167 5027 132L5096 -1Q5130 26 5180.5 41.5Q5231 57 5279 57Q5356 57 5390 23.5Q5424 -10 5424 -74V-138L5434 -290L5433 -443V-542H5614V-99Q5614 55 5531 129Q5448 203 5296 203ZM5263 -28Q5191 -28 5130.5 -60.5Q5070 -93 5033.5 -151.5Q4997 -210 4997 -290Q4997 -370 5033.5 -428.5Q5070 -487 5130.5 -519Q5191 -551 5263 -551Q5332 -551 5381 -523.5Q5430 -496 5455.5 -438Q5481 -380 5481 -290Q5481 -200 5455.5 -142Q5430 -84 5381 -56Q5332 -28 5263 -28ZM5308 -179Q5342 -179 5368.5 -193Q5395 -207 5410.5 -232Q5426 -257 5426 -290Q5426 -323 5410.5 -348Q5395 -373 5368.5 -386.5Q5342 -400 5308 -400Q5274 -400 5247 -386.5Q5220 -373 5204.5 -348Q5189 -323 5189 -290Q5189 -257 5204.5 -232Q5220 -207 5247 -193Q5274 -179 5308 -179ZM5960 28V-532H6246.4Q6356.8 -532 6411.2 -491.6Q6465.6 -451.2 6465.6 -385.6Q6465.6 -342.4 6442.8 -310Q6420 -277.6 6378.8 -258.8Q6337.6 -240 6280.8 -240L6296.8 -278.4Q6356 -278.4 6400 -260.4Q6444 -242.4 6468.4 -208.4Q6492.8 -174.4 6492.8 -125.6Q6492.8 -52.8 6434 -12.4Q6375.2 28 6262.4 28ZM6116.8 -86.4H6249.6Q6290.4 -86.4 6311.6 -100.4Q6332.8 -114.4 6332.8 -143.2Q6332.8 -172 6311.6 -186Q6290.4 -200 6249.6 -200H6105.6V-309.6H6225.6Q6265.6 -309.6 6285.6 -323.2Q6305.6 -336.8 6305.6 -364Q6305.6 -391.2 6285.6 -404.4Q6265.6 -417.6 6225.6 -417.6H6116.8ZM6669.6 28V-208.8L6706.4 -113.6L6456 -532H6623.2L6804 -228.8H6707.2L6888.8 -532H7042.4L6792.8 -113.6L6828 -208.8V28Z"/><circle cx="5760" cy="45.5" r="80"/></svg>';
+function kpHeaderLogoSvg(kp){
+  if(kp && kp.brand === 'armstrong') return '<div class="kp-logo-scope arm">'+KP_ARM_LOGO_SVG+'</div>';
   return '<div class="kp-logo-scope"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 316.2 113.2335483871" preserveAspectRatio="xMidYMid meet">'+
     '<style>.kp-logo-scope .st0{fill:#e10004;}.kp-logo-scope .st1{opacity:0.3;}.kp-logo-scope .st2{opacity:0.6;}.kp-logo-scope .title{fill:#000000;}.kp-logo-scope .slogan{fill:#5f6a69;}</style>'+
     '<g class="sign-anim"><g transform="scale(4.541935483871) translate(0, 0)"><g>'+
@@ -1670,6 +1757,8 @@ kp.paidAt = raw.paidAt || null;
   kp.isArmstrong = rooms.length > 0 && rooms.every(r => r.kind === 'armstrong');
   kp.isGrilyato = kp.isArmstrong && rooms.every(r => r.grilyato);
   kp.sysName = kp.isGrilyato ? 'Грильято' : 'Армстронг';
+  // бренд КП: явно из счёта (i5) или по калькулятору — Армстронг → Armstrong.by, остальное → CUBICA
+  kp.brand = (raw && (raw.brand === 'armstrong' || raw.brand === 'cubica')) ? raw.brand : ((kp.isArmstrong && !kp.isGrilyato) ? 'armstrong' : 'cubica');
   kp.areaTotal = rooms.reduce((s, r) => s + num(r.areaM2, 0), 0);
   return kp;
 }
@@ -1777,7 +1866,7 @@ function buildInvoiceHtml(kp){
   return `
     <div class="preview-page">
     <div class="pv-panel">
-      <div class="pv-logo-svg">${LOGO_SVG_COLOR}</div>
+      <div class="pv-logo-svg${kp.brand==='armstrong'?' arm':''}">${kp.brand==='armstrong'?KP_ARM_LOGO_SVG.replace(/kpArmClip/g,'kpArmClipPdf'):LOGO_SVG_COLOR}</div>
       <div class="pv-panel-company">${escapeHtml(COMPANY.name)}</div>
       <div class="pv-panel-req"><div>УНП: ${escapeHtml(COMPANY.unp)}</div><div>${escapeHtml(COMPANY.address)}</div></div>
       <hr class="pv-sep">
@@ -1843,7 +1932,7 @@ function buildInvoiceHtml(kp){
           <div class="col"><b>Покупатель</b><div class="ln"></div><div>&nbsp;</div></div>
         </div>
       </div>
-      <div class="pv-footer"><span>CUBICA.BY</span><span>${escapeHtml(COMPANY.tagline)} · ${escapeHtml(COMPANY.phone)} · ${escapeHtml(COMPANY.email)}</span><span>Спасибо за заказ!</span></div>
+      <div class="pv-footer"><span>${kp.brand==='armstrong'?'ARMSTRONG.BY':'CUBICA.BY'}</span><span>${escapeHtml(COMPANY.tagline)} · ${escapeHtml(COMPANY.phone)} · ${escapeHtml(COMPANY.email)}</span><span>Спасибо за заказ!</span></div>
     </div>
     </div>`;
 }
@@ -1930,7 +2019,7 @@ async function downloadLayoutPdf(kp, onProgress){
         '<div class="lp-stats">'+buildRoomStatsHtml(room, layout)+'</div>'+
         '<div class="lp-2d">'+kpBuild2DScheme(layout, getRailHex(room.color))+'</div>'+
         '<div class="lp-spec"><div class="title">Спецификация помещения</div><table>'+rowsHtml+'</table></div>'+
-        '<div class="lp-foot">© CUBICA.BY · Лист '+(i+1)+' из '+n+'</div>'+
+        '<div class="lp-foot">© '+(kp.brand==='armstrong'?'ARMSTRONG.BY':'CUBICA.BY')+' · Лист '+(i+1)+' из '+n+'</div>'+
       '</div>';
     const target = host.querySelector('.lp-page');
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -2038,7 +2127,7 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
 }).join('') : '<tr><td colspan="2" style="text-align:center;color:#9aa8b5">Спецификация пуста</td></tr>';
 
   const html =
-    '<div class="kp-hero">'+kpHeaderLogoSvg()+
+    '<div class="kp-hero">'+kpHeaderLogoSvg(kp)+
     '<h1 class="kp-h1">Коммерческое предложение</h1>'+
     '<p class="kp-client" style="margin-top:20px">Контактное лицо: <b style="color:#2c3e50">Вероника</b></p></div>'+
 
@@ -2060,7 +2149,7 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
     '<div class="kp-contacts">E-mail: <a href="mailto:7527073@armstrong.by">7527073@armstrong.by</a></div>'+
     '<div class="kp-actions" style="margin-top:8px"><a class="kp-btn montage" href="tel:+375336374064">📞 Позвонить монтажнику</a></div>'+
     '<div class="kp-montage-note">Если Вас интересуют услуги монтажа, профессиональный монтаж '+(kp.isArmstrong?'потолка '+kp.sysName:'рейки')+' — <b>Сергей</b>.</div>'+
-    '<div class="kp-foot">© CUBICA.BY · '+(kp.isArmstrong?'Потолок '+kp.sysName:'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
+    '<div class="kp-foot">© '+(kp.brand==='armstrong'?'ARMSTRONG.BY':'CUBICA.BY')+' · '+(kp.isArmstrong?'Потолок '+kp.sysName:'Кубическая рейка')+' · Контактное лицо: Вероника</div>';
 
   document.getElementById('kp-content').innerHTML = html;
 
@@ -2171,6 +2260,8 @@ const rowsHtml = kp.rows.length ? kp.rows.map(r => {
 /* ==================== INIT ==================== */
 async function init(){
   let raw = null;
+  const sp0 = new URLSearchParams(location.search);
+  if(!sp0.has('s') && !sp0.has('kp')) window.kpSplash && window.kpSplash('cubica');
 
   try{
     const sp = new URLSearchParams(location.search);
@@ -2230,6 +2321,7 @@ async function init(){
   console.log('rooms =', kp.rooms.length, 'rows =', kp.rows.length, 'price =', kp.price, 'areaTotal =', kp.areaTotal);
   console.groupEnd();
   window.__kp = kp;
+  window.kpSplash && window.kpSplash(kp.brand);
   renderKp(kp);
 }
 if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
