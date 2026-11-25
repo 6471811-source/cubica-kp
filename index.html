@@ -1356,6 +1356,12 @@ function legend2D(w,h,tile1200,lay,masked,grCell){
   return svg;
 }
 
+/* ===== обрезка плит по контуру помещения (наклонные и радиусные стены) ===== */
+function reClipRect(poly,x0,y0,x1,y1){let out=poly;const E=[[p=>p[0]>=x0,(a,b)=>{const t=(x0-a[0])/(b[0]-a[0]);return[x0,a[1]+t*(b[1]-a[1])];}],[p=>p[0]<=x1,(a,b)=>{const t=(x1-a[0])/(b[0]-a[0]);return[x1,a[1]+t*(b[1]-a[1])];}],[p=>p[1]>=y0,(a,b)=>{const t=(y0-a[1])/(b[1]-a[1]);return[a[0]+t*(b[0]-a[0]),y0];}],[p=>p[1]<=y1,(a,b)=>{const t=(y1-a[1])/(b[1]-a[1]);return[a[0]+t*(b[0]-a[0]),y1];}]];for(const[ins,cut]of E){const inp=out;out=[];if(!inp.length)break;for(let i=0;i<inp.length;i++){const cur=inp[i],prev=inp[(i+inp.length-1)%inp.length];const ci=ins(cur),pi=ins(prev);if(ci){if(!pi)out.push(cut(prev,cur));out.push(cur);}else if(pi)out.push(cut(prev,cur));}}const r=[];for(const p of out){const q=r[r.length-1];if(!q||Math.abs(q[0]-p[0])>0.05||Math.abs(q[1]-p[1])>0.05)r.push(p);}if(r.length>1){const a=r[0],b=r[r.length-1];if(Math.abs(a[0]-b[0])<=0.05&&Math.abs(a[1]-b[1])<=0.05)r.pop();}return r;}
+function reClipSeg(poly,x1,y1,x2,y2){const n=poly.length,dx=x2-x1,dy=y2-y1;const ts=[0,1];for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];const ex=b[0]-a[0],ey=b[1]-a[1];const den=dx*ey-dy*ex;if(Math.abs(den)<1e-9)continue;const t=((a[0]-x1)*ey-(a[1]-y1)*ex)/den;const u=((a[0]-x1)*dy-(a[1]-y1)*dx)/den;if(t>1e-6&&t<1-1e-6&&u>=-1e-9&&u<=1+1e-9)ts.push(t);}ts.sort((p,q)=>p-q);const out=[];for(let i=0;i<ts.length-1;i++){const t0=ts[i],t1=ts[i+1];if(t1-t0<1e-6)continue;const tm=(t0+t1)/2;if(pointInPoly(poly,x1+tm*dx,y1+tm*dy))out.push([x1+t0*dx,y1+t0*dy,x1+t1*dx,y1+t1*dy]);}return out;}
+function reArea(p){let s=0;for(let i=0,n=p.length;i<n;i++){const a=p[i],b=p[(i+1)%n];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s)/2;}
+function rePlateGeo(pts,T){const sh=new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0],p[1])));const g=new THREE.ExtrudeGeometry(sh,{depth:T,bevelEnabled:false,curveSegments:1});g.rotateX(Math.PI/2);g.translate(0,T/2,0);return g;}
+function reUV(g,ox,oz,P){const pos=g.attributes.position,uv=g.attributes.uv;if(!uv)return;for(let i=0;i<uv.count;i++)uv.setXY(i,(pos.getX(i)-ox)/P,(pos.getZ(i)-oz)/P);uv.needsUpdate=true;}
 function init3D(room, A, container){
   if(!container || !container.clientWidth || !container.clientHeight){
     setTimeout(()=>init3D(room, A, container), 150);
@@ -1387,6 +1393,7 @@ function init3D(room, A, container){
   const {L,W,L_in,W_in,lay,polygon}=A;
   const t=A.totalRot*Math.PI/180, ct=Math.cos(t), st=Math.sin(t);
   const toDisp=(xg,yg)=>{const dx=xg-L/2,dy=yg-W/2;return[dx*ct-dy*st+L_in/2, dx*st+dy*ct+W_in/2];};
+  const polyGrid=polygon?polygon.map(p=>{const dx=p[0]-L_in/2,dy=p[1]-W_in/2;return[dx*ct+dy*st+L/2,-dx*st+dy*ct+W/2];}):null;
   const clipPlanes = polygon ? [] : [
     new THREE.Plane(new THREE.Vector3(1,0,0),Lm/2), new THREE.Plane(new THREE.Vector3(-1,0,0),Lm/2),
     new THREE.Plane(new THREE.Vector3(0,0,1),Wm/2), new THREE.Plane(new THREE.Vector3(0,0,-1),Wm/2)];
@@ -1402,9 +1409,17 @@ function init3D(room, A, container){
     const tw=tl.w-2*gapMM, th=tl.h-2*gapMM; if(tw<=0||th<=0) continue;
     const cx=tl.x0+tl.w/2, cy=tl.y0+tl.h/2;
     if(polygon){
-      const probes=[[cx,cy]];
-      if(tl.w>tl.h) probes.push([cx-tl.w/4,cy],[cx+tl.w/4,cy]); else if(tl.h>tl.w) probes.push([cx,cy-tl.h/4],[cx,cy+tl.h/4]);
-      if(!probes.some(p=>{const d=toDisp(p[0],p[1]);return pointInPoly(polygon,d[0],d[1]);})) continue;
+      // плита обрезается по контуру помещения — как в 2D
+      const rx0=tl.x0+gapMM, ry0=tl.y0+gapMM;
+      const cp=reClipRect(polyGrid,rx0,ry0,rx0+tw,ry0+th);
+      if(cp.length<3) continue;
+      const ar=reArea(cp);
+      if(ar<400) continue;
+      if(ar<tw*th*0.998){
+        const g=rePlateGeo(cp.map(p=>{const d=toDisp(p[0],p[1]);return[d[0]/1000+xOff,d[1]/1000+zOff];}),PLATE_T);
+        const m=new THREE.Mesh(g,mPlate); m.position.y=plateY; pivot.add(m);
+        continue;
+      }
     } else {
       // плита целиком вне помещения — пропускаем
       const corners=[[tl.x0,tl.y0],[tl.x0+tl.w,tl.y0],[tl.x0,tl.y0+tl.h],[tl.x0+tl.w,tl.y0+tl.h]].map(p=>toDisp(p[0],p[1]));
@@ -1420,7 +1435,8 @@ function init3D(room, A, container){
   // профили (отсечены по контуру помещения)
   for(const it of lay.items){
     const mat = it.type===3600?mMain:(it.type===1200?m1200:m600);
-    for(const sg of lay.clipItem(it)){
+    const sgs=[];for(const s0 of lay.clipItem(it))sgs.push(...(polygon?reClipSeg(polygon,s0[0],s0[1],s0[2],s0[3]):[s0]));
+    for(const sg of sgs){
       const dx=sg[2]-sg[0], dz=sg[3]-sg[1], len=Math.hypot(dx,dz);
       if(len<MIN_VISIBLE*10) continue;
       const g=new THREE.Group();
